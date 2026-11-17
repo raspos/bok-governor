@@ -35,7 +35,7 @@ export function forecastWatch(input){
  const span=Math.max(0,Math.round((Date.parse(input.date)-Date.parse(input.asOf))/dayMs));
  const factors=[
  {name:'현재와 예상 물가상승률',value:.86*(input.inflation-2)+.60*(input.expectations-2)},
- {name:'경기 흐름과 기초체력의 차이',value:.75*(input.growth-input.capacity)},
+ {name:'GDP갭률(잠재성장 대비)',value:.75*(input.growth-input.capacity)},
  {name:'원/달러 환율과 한미 금리차',value:.004*(input.fx-1440)+.25*(input.fed-input.rate-.75)},
  {name:'금융시장 위험과 환율 변동',value:-.034*Math.max(0,input.stress-31)+.0012*input.fxMove},
  {name:'직전 공개 결정',value:.48*input.previousMove},

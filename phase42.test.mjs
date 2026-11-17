@@ -8,8 +8,8 @@ import {currentWatch} from './dist/watch.mjs';
 import {historicalVerdict} from './dist/verdict.mjs';
 
 test('game terminology distinguishes model points from percent rates',()=>{
- assert.deepEqual(metrics.growth,['경기 흐름','점']);
- assert.equal(metrics.capacity[1],'점');
+ assert.deepEqual(metrics.growth,['실질 GDP 성장률','%']);
+ assert.equal(metrics.capacity[1],'%');
  assert.equal(metrics.inflation[1],'%');
  const dir=new URL('./dist/',import.meta.url);
  for(const file of readdirSync(dir).filter(n=>n.endsWith('.mjs'))){

@@ -47,9 +47,9 @@ export function historicalVerdict(game,analysis){
  else if(trust>=76&&p.confidence>=71&&balanced)stewardship='시장의 신뢰를 얻은 총재';
  const success=score.inflationError<.45?'연중 물가가 목표 부근을 유지했습니다.':
  assisted?'유동성 공급이 '+assisted+'개 회의 구간에서 무대응보다 금융 위험을 낮췄습니다.':
- score.growthGap>-.35?'경기 흐름이 연중 경제 기초체력 부근을 유지했습니다.':'금리 결정과 설명을 여덟 회의 기록으로 남겼습니다.';
+ score.growthGap>-.35?'실질 GDP 성장률이 잠재성장률 부근을 유지하며 견조했습니다.':'금리 결정과 설명을 여덟 회의 기록으로 남겼습니다.';
  const cost=fragility?'주택·신용 불균형이 2029년에도 부담으로 남았습니다.':
- score.growthGap<-.35?'연중 성장이 기초체력을 밑돌며 고용·소득 회복이 지연됐습니다.':
+ score.growthGap<-.35?'연중 성장이 잠재성장률을 밑돌며 GDP갭 마이너스가 심화되고 회복이 지연됐습니다.':
  p.confidence<65?'시장 신뢰가 약해져 금리 경로의 위험 프리미엄이 확대됐습니다.':
  score.inflationError>.55?'연중 목표에서 벗어난 물가가 생활비 부담을 남겼습니다.':'2029년 평가는 후임 정책과 새로운 외부 충격에도 영향을 받습니다.';
  const actions=game.records.filter(r=>r.ability);

@@ -378,7 +378,7 @@ h1,.hero h1,.council-title h1,.title-copy .title-wordmark{font-family:var(--type
 #game-dock .hud-more>span{white-space:nowrap}
 #game-dock .hud-gdp{color:#d7c5a8}
 @media(max-width:540px){
- #main:not(:has(.title-scene)){padding-bottom:9rem}
+ #main:not(:has(.title-scene)){padding-bottom:11rem}
  #game-dock .hud-more{gap:.22rem .55rem;font-size:.69rem}
  #game-dock .hud-more>span{display:inline-flex;gap:.2em}
 }

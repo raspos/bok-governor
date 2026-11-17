@@ -25,7 +25,7 @@ export function newsCases(){
  const found={};
  for(const g of newsSessions()){
   const a=frontPage(g);
-  const category=a.topic==='growth'?'recovery':a.headline.includes('경기는 뒷걸음')?'stagflation':a.flash?.includes('신용 경색')?'crisis':null;
+  const category=a.topic==='growth'?'recovery':(a.headline.includes('경기는 뒷걸음')||a.headline.includes('진퇴양난'))?'stagflation':a.flash?.includes('신용 경색')?'crisis':null;
   if(category&&!found[category])found[category]=openFrontPage(g);
   if(Object.keys(found).length===3)break;
  }

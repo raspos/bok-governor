@@ -404,7 +404,7 @@ h1,.hero h1,.council-title h1,.title-copy .title-wordmark{font-family:var(--type
 #game-dock .hud-more>span{white-space:nowrap}
 #game-dock .hud-gdp{color:#d7c5a8}
 @media(max-width:540px){
- #main:not(:has(.title-scene)){padding-bottom:9rem}
+ #main:not(:has(.title-scene)){padding-bottom:11rem}
  #game-dock .hud-more{gap:.22rem .55rem;font-size:.69rem}
  #game-dock .hud-more>span{display:inline-flex;gap:.2em}
 }
@@ -436,9 +436,74 @@ const scheduleSource='https://www.bok.or.kr/portal/bbs/B0000502/view.do?menuNo=2
 const neutralRate=2.5;
 const calm=Object.freeze({oil:0,world:0,fed:0,risk:0,sensitivity:1});
 const initial = Object.freeze({month:0, rate:3, fed:3.88, inflation:2.8, growth:1.8, fx:1440, stress:32, unemployment:3.1, debt:4.6, housing:2.4, loan:4.57, oil:75, consumption:1.7, investment:1.8, debtStock:100, imbalance:40, expectations:2.5, capacity:1.9, gaps:Object.freeze([.5,.5,.5])});
-const metrics = {rate:['기준금리','%'], inflation:['물가상승률','%'], growth:['경기 흐름','점'], fx:['원/달러 환율','원'], stress:['금융위험','/100'], unemployment:['실업률','%'], debt:['가계신용 증가율','%'], housing:['주택가격 증가율','%'], loan:['은행 대출금리','%'], oil:['브렌트유','달러'], fed:['미국 연방기금 실효금리','%']};
+const metrics = {
+ rate: ['기준금리', '%'],
+ inflation: ['소비자물가 상승률', '%'],
+ growth: ['실질 GDP 성장률', '%'],
+ fx: ['원/달러 환율', '원'],
+ stress: ['금융위험', '/100'],
+ unemployment: ['실업률', '%'],
+ debt: ['가계신용 증가율', '%'],
+ housing: ['주택가격 상승률', '%'],
+ loan: ['은행 대출금리', '%'],
+ oil: ['브렌트유', '달러'],
+ fed: ['미국 연방기금 실효금리', '%'],
+ gdpForecast: ['경제성장률 전망', '%'],
+ gdpGap: ['GDP갭률', '%'],
+ cci: ['경기동행지수 순환변동치', 'p'],
+ consumption: ['민간소비 증가율', '%'],
+ investment: ['설비투자 증가율', '%'],
+ debtStock: ['가계부채 잔액 지수', ''],
+ imbalance: ['부채·주택 과열', '/100'],
+ expectations: ['기대인플레이션', '%'],
+ capacity: ['잠재성장률 추정치', '%']
+};
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
-Object.assign(metrics,{consumption:['소비 흐름','점'],investment:['투자 흐름','점'],debtStock:['가계부채 잔액 지수','점'],imbalance:['부채·주택 과열','/100'],expectations:['예상 물가상승률','%'],capacity:['경제 기초체력','점']});
+
+function derivedMacro(s, prev=null){
+ // 1. 실질 GDP 성장률 (GDP Growth Rate)
+ // 연간 성장률 전망치 (Annual Forecast, %): 기준 잠재성장률(약 1.9~2.0%)에 수요 갭과 투자·소비 반응을 종합
+ const gdpForecast = Number((s.capacity + 0.62 * (s.growth - s.capacity) + 0.16 * (s.investment - 1.9) + 0.10 * (s.consumption - 1.9)).toFixed(2));
+ const prevForecast = prev ? Number((prev.capacity + 0.62 * (prev.growth - prev.capacity) + 0.16 * (prev.investment - 1.9) + 0.10 * (prev.consumption - 1.9)).toFixed(2)) : gdpForecast;
+ const gdpRevision = Number((gdpForecast - prevForecast).toFixed(2)); // 전망 수정 폭 (%p)
+
+ // 분기 전기비 성장률 (QoQ %): 한국은행 속보치 헤드라인 스케일 (0.2~0.8% 내외)
+ const gdpQoQ = Number((0.50 + 0.24 * (s.growth - s.capacity) + 0.06 * (s.investment - 1.9)).toFixed(2));
+ // 분기 전년동기비 성장률 (YoY %):
+ const gdpYoY = Number((gdpForecast + 0.12 * (s.consumption - 1.9)).toFixed(2));
+
+ // 2. GDP갭률 (GDP Gap Ratio, %): 실제 GDP와 잠재 GDP의 차이 / 잠재 GDP * 100
+ // 게임 모형 추정치. 양수: 잠재 생산 수준 상회, 음수: 잠재 생산 수준 하회
+ const gdpGap = Number((0.75 * (s.growth - s.capacity) + 0.15 * (s.consumption - 1.9) + 0.10 * (s.investment - 1.9)).toFixed(2));
+ const gdpGapStatus = gdpGap > 0.05 ? '잠재 생산 수준 상회' : gdpGap < -0.05 ? '잠재 생산 수준 하회' : '잠재 생산 수준 부근';
+
+ // 3. 경기동행지수 순환변동치 (Coincident Composite Index Cyclical Component)
+ // 통계청 경기동행지수 산식을 기초로 한 게임 모형 추정치 (100 기준 순환변동치)
+ const cci = Number((100.0 + 1.80 * (s.growth - s.capacity) + 0.70 * (s.consumption - 1.9) + 0.55 * (s.investment - 1.9) - 0.85 * (s.unemployment - 3.1)).toFixed(1));
+ const prevCci = prev ? Number((100.0 + 1.80 * (prev.growth - prev.capacity) + 0.70 * (prev.consumption - 1.9) + 0.55 * (prev.investment - 1.9) - 0.85 * (prev.unemployment - 3.1)).toFixed(1)) : cci;
+ const cciChange = Number((cci - prevCci).toFixed(1)); // 전월 대비 변화 (포인트 단위)
+ const cciStatus = cci >= 100 ? '경기 확장 국면' : '경기 수축 국면';
+
+ // 4. 민간소비 및 설비투자 증가율 (전년동기대비 %)
+ const privateConsumption = Number((1.8 + 0.82 * (s.consumption - 1.9)).toFixed(2));
+ const facilityInvestment = Number((2.0 + 1.20 * (s.investment - 1.9)).toFixed(2));
+
+ return {
+  gdpForecast,
+  prevForecast,
+  gdpRevision,
+  gdpQoQ,
+  gdpYoY,
+  gdpGap,
+  gdpGapStatus,
+  cci,
+  prevCci,
+  cciChange,
+  cciStatus,
+  privateConsumption,
+  facilityInvestment
+ };
+}
 function tape(seed,count=12){
  let s=seed>>>0;
  const draw=()=>{s=(Math.imul(1664525,s)+1013904223)>>>0;return s/4294967296;};
@@ -483,15 +548,17 @@ const goalKeys=['inflation','growth','debt','stress'];
 const policyMetrics=goalKeys;
 const policyMoves=[-.25,0,.25];
 const metricNotes={
- rate:'현재 적용되는 연 기준금리',inflation:'전년 동월 대비로 표현한 가상 상승률 · 물가지수 자체의 변동률과 구분',
- growth:'매월 갱신되는 경기 점수 · 경제 기초체력과 비교',capacity:'매월 갱신되는 경기 비교 기준 점수',
- fx:'월별 모형의 미 달러당 원화',stress:'매월 갱신되는 금융위험 점수 · 0~100, 높을수록 위험',
- debt:'가계신용 잔액의 증가세를 나타내는 연율 모형값',debtStock:'임기 시작 100 기준의 가계신용 잔액 지수',
- housing:'월별로 갱신하는 주택가격 상승세 모형값 · 별도 전월·전년 비율 계산 없음',
- expectations:'월별로 갱신하는 예상 물가상승률 · 고정 전망 기간 없음',
- loan:'모형상의 은행 연 대출금리',unemployment:'모형 월말 실업률 수준',fed:'모형상의 미국 연 정책금리',
- oil:'모형 월말 배럴당 브렌트유 가격',consumption:'월별 소비 흐름 점수',investment:'월별 투자 흐름 점수',
- imbalance:'매월 갱신하는 부채·주택 과열 점수 · 0~100, 높을수록 과열'
+ rate:'현재 적용되는 연 기준금리',inflation:'소비자물가 상승률(전년동월대비)',
+ growth:'실질 GDP 성장률 동학 변수',capacity:'잠재성장률 추정치',
+ gdpForecast:'연간 실질 GDP 성장률 전망치',gdpGap:'GDP갭률(잠재생산 대비 %)',
+ cci:'경기동행지수 순환변동치(기준=100)',
+ fx:'원/달러 환율',stress:'금융위험 지수(0~100, 높을수록 위험)',
+ debt:'가계신용 증가율(연율)',debtStock:'가계부채 잔액 지수(기준=100)',
+ housing:'주택가격 상승률',
+ expectations:'기대인플레이션율',
+ loan:'은행 대출금리',unemployment:'실업률',fed:'미국 연방기금 실효금리',
+ oil:'브렌트유 가격(달러)',consumption:'민간소비 증가율',investment:'설비투자 증가율',
+ imbalance:'부채·주택 과열 지수(0~100, 높을수록 과열)'
 };
 const decimals=k=>k==='stress'?1:2;
 const rounded=(k,n)=>Number(n.toFixed(decimals(k)));
@@ -504,9 +571,9 @@ const goalPeriod=(turn,s)=>{
 function goalOptions(s){
  return [
  {key:'inflation',name:s.inflation>=2.2?'물가상승률을 낮추기':'물가상승률을 2% 부근으로 유지',limit:s.inflation>=2.2?rounded('inflation',s.inflation-.2):2.2,min:s.inflation>=2.2?null:1.8},
- {key:'growth',name:'경기 흐름의 추가 하락을 막기',limit:null,min:rounded('growth',s.growth-.1)},
+ {key:'growth',name:'실질 GDP 성장률 하락 방어',limit:null,min:rounded('growth',s.growth-.1)},
  {key:'debt',name:s.debt>.3?'가계신용 증가세를 늦추기':'가계신용 증가율을 0.3% 이내로 유지',limit:s.debt>.3?rounded('debt',s.debt-.3):.3,min:null},
- {key:'stress',name:s.stress>=35?'금융위험 점수를 낮추기':'금융위험을 현재 수준 가까이 유지',limit:rounded('stress',s.stress+(s.stress>=35?-2:1)),min:null}
+ {key:'stress',name:s.stress>=35?'금융위험 완화':'금융위험을 현재 수준 가까이 유지',limit:rounded('stress',s.stress+(s.stress>=35?-2:1)),min:null}
  ];
 }
 function chooseGoal(game,key){
@@ -711,9 +778,9 @@ const startScenarios={
  standard:{
   id:'standard',
   name:'기본 시나리오',
-  subtitle:'물가 2.8% · 경기 1.8점',
+  subtitle:'물가 2.80% · 성장률 전망 2.1%',
   dilemma:'물가 안정과 경기 둔화의 균형 · 중립 기조를 모색할까',
-  desc:'기준금리 3.00%, 물가상승률 2.80%, 경기 흐름 1.80점. 물가 안정과 경기 둔화의 갈림길에서 통화정책을 시작합니다.',
+  desc:'기준금리 3.00%, 소비자물가 상승률 2.80%, 연간 실질 GDP 성장률 전망 2.1%. 물가 안정과 경기 둔화의 갈림길에서 통화정책을 시작합니다.',
   recommended:true,
   state:{...initial},
   market:{...openingMarket}
@@ -721,16 +788,16 @@ const startScenarios={
  inflation:{
   id:'inflation',
   name:'① 물가와의 전쟁',
-  subtitle:'물가 3%대 · 성장 둔화',
+  subtitle:'물가 3.70% · 성장률 전망 1.4%',
   dilemma:'물가 3%대와 성장 둔화 · 금리를 더 올려야 하나',
-  desc:'물가상승률 3.70%, 기대물가 3.20%. 고물가가 고착될 위험 속에 경기는 둔화되고 있습니다.',
+  desc:'소비자물가 상승률 3.70%, 기대인플레이션 3.20%, 연간 실질 GDP 성장률 전망 1.4%. 고물가 고착화 위험 속에 경기는 둔화되고 있습니다.',
   state:{month:0,rate:3.25,fed:4.00,inflation:3.7,growth:1.3,fx:1460,stress:35,unemployment:3.2,debt:3.8,housing:1.2,loan:4.90,oil:85,consumption:1.3,investment:1.4,debtStock:100,imbalance:38,expectations:3.2,capacity:1.8,gaps:[.75,.75,.75]},
   market:{...openingMarket,expected:3.40,yield:3.48},
   inauguralQ3:{
    question:'총재님, 소비자물가 상승률이 3%대 후반까지 오르며 서민 물가 부담이 극심합니다. 당장 가장 걱정하시는 위험 요인은 무엇입니까?',
    choices:[
-    {id:'prices',label:'고물가 고착화',text:s=>'물가상승률이 '+s.inflation.toFixed(2)+'%에 달하고 기대물가도 '+s.expectations.toFixed(2)+'%입니다. 임금과 물가의 연쇄 상승을 차단하는 것이 최우선입니다.'},
-    {id:'activity',label:'내수 급랭 위험',text:s=>'물가를 잡기 위한 긴축 기조 속에서 가계 소비와 기업 투자가 과도하게 얼어붙지 않는지 면밀히 점검하고 있습니다.'},
+    {id:'prices',label:'고물가 고착화',text:s=>'소비자물가 상승률이 '+s.inflation.toFixed(2)+'%에 달하고 기대인플레이션도 '+s.expectations.toFixed(2)+'%입니다. 임금과 물가의 연쇄 상승을 차단하는 것이 최우선입니다.'},
+    {id:'activity',label:'내수 급랭 위험',text:s=>'물가를 잡기 위한 긴축 기조 속에서 민간소비와 설비투자가 과도하게 얼어붙지 않는지 면밀히 점검하고 있습니다.'},
     {id:'markets',label:'차주 이자 부담',text:s=>'대출금리가 '+s.loan.toFixed(2)+'%까지 오르며 취약계층의 원리금 상환 부담이 가중되는 점을 우려하고 있습니다.'}
    ]
   }
@@ -738,16 +805,16 @@ const startScenarios={
  stagnation:{
   id:'stagnation',
   name:'② 침체의 그림자',
-  subtitle:'물가 안정 · 소비·투자 부진',
+  subtitle:'물가 1.40% · 성장률 전망 0.9%',
   dilemma:'물가 안정과 소비·투자 부진 · 금리를 내려 경기를 살릴까',
-  desc:'물가상승률 1.40%, 경기 흐름 0.80점. 물가는 목표를 밑돌고 소비와 투자가 동반 위축되고 있습니다.',
+  desc:'소비자물가 상승률 1.40%, 성장률 전망 0.9%. 물가는 목표를 밑돌고 민간소비와 설비투자가 동반 위축되고 있습니다.',
   state:{month:0,rate:2.75,fed:3.50,inflation:1.4,growth:0.8,fx:1410,stress:30,unemployment:3.8,debt:2.2,housing:-0.5,loan:4.25,oil:68,consumption:0.9,investment:0.9,debtStock:100,imbalance:34,expectations:1.6,capacity:1.8,gaps:[.25,.25,.25]},
   market:{...openingMarket,expected:2.50,yield:2.55},
   inauguralQ3:{
    question:'총재님, 물가는 안정됐지만 소비와 설비투자가 동시에 얼어붙으며 경기 침체 우려가 팽배합니다. 지금 경제에서 가장 우려하시는 부분은 무엇입니까?',
    choices:[
-    {id:'activity',label:'내수 침체 장기화',text:s=>'경기 흐름 점수가 '+s.growth.toFixed(2)+'점으로 크게 떨어졌습니다. 소비와 투자의 동반 위축이 고착화되는 것을 가장 경계합니다.'},
-    {id:'prices',label:'디플레이션 압력',text:s=>'물가상승률이 '+s.inflation.toFixed(2)+'%로 목표인 2%를 밑돌고 있습니다. 저물가-저성장의 덫에 빠지지 않도록 유의해야 합니다.'},
+    {id:'activity',label:'내수 침체 장기화',text:s=>'실질 GDP 성장률 전망이 0.9%로 떨어지고 GDP갭률도 마이너스가 심화되고 있습니다. 소비와 투자의 동반 위축이 고착화되는 것을 가장 경계합니다.'},
+    {id:'prices',label:'디플레이션 압력',text:s=>'소비자물가 상승률이 '+s.inflation.toFixed(2)+'%로 목표인 2%를 밑돌고 있습니다. 저물가-저성장의 덫에 빠지지 않도록 유의해야 합니다.'},
     {id:'markets',label:'고용 악화와 실업',text:s=>'실업률이 '+s.unemployment.toFixed(2)+'%로 올라서고 있습니다. 일자리 위축이 가계 소득 감소로 이어지는 악순환을 차단해야 합니다.'}
    ]
   }
@@ -755,7 +822,7 @@ const startScenarios={
  fx:{
   id:'fx',
   name:'③ 흔들리는 원화',
-  subtitle:'환율 급등 · 수입물가 불안',
+  subtitle:'환율 1,530원 · 수입물가 불안',
   dilemma:'환율 급등과 수입물가 불안 · 경기보다 환율과 물가를 우선할까',
   desc:'원/달러 환율 1,530원, 미 연준 고금리 유지. 환율 급등이 수입물가를 거세게 압박합니다.',
   state:{month:0,rate:3,fed:4.25,inflation:3.3,growth:1.5,fx:1530,stress:42,unemployment:3.2,debt:4.0,housing:1.5,loan:4.75,oil:86,consumption:1.4,investment:1.6,debtStock:100,imbalance:40,expectations:2.9,capacity:1.9,gaps:[.5,.5,.5]},
@@ -772,7 +839,7 @@ const startScenarios={
  debt:{
   id:'debt',
   name:'④ 빚의 경고',
-  subtitle:'가계부채 증가 · 금융시장 불안',
+  subtitle:'가계신용 7.20% · 금융시장 불안',
   dilemma:'가계부채 증가와 금융시장 불안 · 금리와 금융안정 대응을 어떻게 조합할까',
   desc:'가계신용 증가율 7.20%, 부동산 과열. 부채 누적과 금융불균형이 심각한 경고음을 냅니다.',
   state:{month:0,rate:3,fed:3.88,inflation:2.4,growth:1.9,fx:1430,stress:48,unemployment:3.0,debt:7.2,housing:4.5,loan:4.65,oil:75,consumption:2.1,investment:2.0,debtStock:108,imbalance:58,expectations:2.4,capacity:1.9,gaps:[.5,.5,.5]},
@@ -789,16 +856,16 @@ const startScenarios={
  chips:{
   id:'chips',
   name:'⑤ 반도체의 역설',
-  subtitle:'수출·투자 호황 · 내수 부진',
+  subtitle:'설비투자 호황 · 내수 부진',
   dilemma:'수출·투자 호황과 내수 부진 · 호황을 믿고 긴축할 수 있을까',
-  desc:'반도체 호황으로 투자 3.40점 견조, 그러나 소비 1.10점으로 내수는 극심한 부진에 빠져 있습니다.',
+  desc:'반도체 호황으로 설비투자 호조(성장률 전망 2.6%)이나, 민간소비는 극심한 부진에 빠져 있습니다.',
   state:{month:0,rate:3,fed:3.88,inflation:2.6,growth:2.6,fx:1400,stress:28,unemployment:3.3,debt:4.2,housing:1.8,loan:4.60,oil:73,consumption:1.1,investment:3.4,debtStock:100,imbalance:39,expectations:2.4,capacity:2.1,gaps:[.5,.5,.5]},
   market:{...openingMarket,expected:2.95,yield:3.00},
   inauguralQ3:{
    question:'총재님, 반도체 등 수출은 사상 최대 호황이지만 골목상권과 내수는 꽁꽁 얼어붙어 양극화가 극심합니다. 이 엇갈린 신호 속에서 무엇을 가장 걱정하십니까?',
    choices:[
-    {id:'activity',label:'내수·소비 양극화',text:s=>'설비투자는 '+s.investment.toFixed(2)+'점으로 호황이지만 소비 흐름은 '+s.consumption.toFixed(2)+'점에 그치고 있습니다. 수출 온기가 내수로 퍼지지 않는 괴리를 가장 걱정합니다.'},
-    {id:'prices',label:'착시로 인한 실기',text:s=>'외형 성장 점수 '+s.growth.toFixed(2)+'점이라는 착시에 가려져 체감 경기와 서민 생활의 고통을 놓치는 정책적 실수를 경계합니다.'},
+    {id:'activity',label:'내수·소비 양극화',text:s=>'설비투자는 호황이지만 민간소비는 크게 위축되어 있습니다. 수출 온기가 내수로 퍼지지 않는 괴리를 가장 걱정합니다.'},
+    {id:'prices',label:'착시로 인한 실기',text:s=>'외형 성장률 전망 2.6%라는 착시에 가려져 체감 경기와 서민 생활의 고통을 놓치는 정책적 실수를 경계합니다.'},
     {id:'markets',label:'단일 품목 의존성',text:s=>'반도체 단일 사이클에 경제가 좌우되는 만큼, 호황 이후 닥쳐올 수 있는 대외 충격에 대비한 정책 여력을 비축해야 합니다.'}
    ]
   }
@@ -871,10 +938,10 @@ function dilemma(s,shocks=[]){
  const latest=shocks.at(-1);
  if(s.stress>=41)return {title:'자금시장의 균열',detail:'자금경색을 완화하면 단기 위험이 줄지만, 광범위한 신용지원은 부채 부담을 키울 수 있습니다.'};
  if((latest?.fed??0)>=.25&&s.growth<s.capacity||s.fx>1470&&s.growth<s.capacity)return {title:'원화 방어와 내수 회복',detail:'달러 조달 여건이 불리합니다. 경기 지원을 위한 완화가 환율 부담을 키울 수 있습니다.'};
- if(s.inflation>2.35&&s.growth<s.capacity-.2)return {title:'물가 안정과 경기 하방',detail:'물가는 목표를 웃돌지만 성장은 경제 기초체력을 밑돕니다.'};
+ if(s.inflation>2.35&&s.growth<s.capacity-.2)return {title:'물가 안정과 경기 하방',detail:'물가는 목표를 웃돌지만 성장률 전망과 GDP갭은 하방 압력을 받고 있습니다.'};
  if(s.inflation<2.3&&(s.imbalance>43||s.housing>2))return {title:'완화와 부채 위험',detail:'물가 여건은 완화에 유리하지만 주택과 신용을 함께 확인해야 합니다.'};
- if(s.growth>s.capacity+.17&&s.investment>s.consumption+.2)return {title:'수출·투자와 내수의 온도차',detail:'성장과 투자는 견조합니다. 소비가 같은 속도로 회복됐는지 확인하십시오.'};
- if(s.growth<s.capacity-.2)return {title:'회복을 앞당길 것인가',detail:'경기가 약합니다. 이전 결정이 쌓이며 대출과 소비에 미친 효과를 확인할 시점입니다.'};
+ if(s.growth>s.capacity+.17&&s.investment>s.consumption+.2)return {title:'수출·투자와 내수의 온도차',detail:'설비투자는 견조하지만 민간소비 회복세가 이를 따라가지 못하고 있습니다.'};
+ if(s.growth<s.capacity-.2)return {title:'회복을 앞당길 것인가',detail:'성장세가 둔화되고 있습니다. 이전 결정이 대출과 소비, GDP갭률에 미친 효과를 확인할 시점입니다.'};
  return {title:'다음 충격에 대비한 정책 여력',detail:'지금의 금리 수준을 유지할 때와 정책 여력을 미리 사용할 때의 비용을 비교하십시오.'};
 }
 
@@ -1042,8 +1109,11 @@ function persuasionCase(game,member,initialVote,proposal,method,follow){
  const justified=fit>=.46&&(follow==='crosscheck'||specialist);
  const trustBefore=game.memberTrust?.[member.id]??55;
  const outcome=changed?'근거가 기존 판단의 문턱을 넘어 한 단계 조정했습니다.':initialVote===proposal?'이미 같은 안을 지지했습니다.':fit<.32?'현재 지표가 제안한 방향을 뒷받침하지 않았습니다.':'근거가 위원의 반론을 뒤집기에 부족했습니다.';
+ const macro=derivedMacro(game.state);
  return {id:member.id,name:member.name,method,follow,proposal,initial:initialVote,final,changed,justified,fit,trustBefore,outcome,
- proof:(method==='model'?'물가 '+game.state.inflation.toFixed(2)+'%, 기대물가 '+game.state.expectations.toFixed(2)+'%':method==='stability'?'금융 위험 '+game.state.stress.toFixed(0)+'점, 부채·주택 과열 '+game.state.imbalance.toFixed(0)+'점':'경기 흐름 '+game.state.growth.toFixed(2)+'점, 은행 대출금리 '+game.state.loan.toFixed(2)+'%'),
+ proof:(method==='model'?'소비자물가 '+game.state.inflation.toFixed(2)+'%, 기대인플레이션 '+game.state.expectations.toFixed(2)+'%'
+  :method==='stability'?'금융위험 '+game.state.stress.toFixed(0)+'/100, 부채·주택 과열 '+game.state.imbalance.toFixed(0)+'/100'
+  :'성장률 전망 '+macro.gdpForecast.toFixed(1)+'% (GDP갭률 '+macro.gdpGap.toFixed(1)+'%), 대출금리 '+game.state.loan.toFixed(2)+'%'),
  objection:member.philosophy+' 관점에서 '+evidenceNames[member.evidence]+' 근거와 기존 정책의 부작용을 더 확인해야 합니다.'};
 }
 function memberMemory(game,record,next){
@@ -1103,7 +1173,7 @@ function forecastWatch(input){
  const span=Math.max(0,Math.round((Date.parse(input.date)-Date.parse(input.asOf))/dayMs));
  const factors=[
  {name:'현재와 예상 물가상승률',value:.86*(input.inflation-2)+.60*(input.expectations-2)},
- {name:'경기 흐름과 기초체력의 차이',value:.75*(input.growth-input.capacity)},
+ {name:'GDP갭률(잠재성장 대비)',value:.75*(input.growth-input.capacity)},
  {name:'원/달러 환율과 한미 금리차',value:.004*(input.fx-1440)+.25*(input.fed-input.rate-.75)},
  {name:'금융시장 위험과 환율 변동',value:-.034*Math.max(0,input.stress-31)+.0012*input.fxMove},
  {name:'직전 공개 결정',value:.48*input.previousMove},
@@ -1175,17 +1245,19 @@ const outlets={decision:'통화정책 출입기자',macro:'경제부 기자',mar
 
 function openingStatement(record){
  const r=record,s=r.origin;
+ const macro=derivedMacro(s);
  const stats=r.review?('공식 재의에서 기존 안에 '+r.review.support+'명이 찬성했습니다. '+(r.review.president?'대통령 최종 판단은 '+r.review.president+'입니다.':'대체안 결선을 거쳤습니다.')):null;
  const actual=r.runoff??r.votes;
  const votes=['인상','동결','인하'].map((k,i)=>k+' '+actual.filter(x=>x.vote===[.25,0,-.25][i]).length+'표').join(' · ');
  const adopted=r.change>0?'현재·예상 물가와 금융위험을 함께 살폈습니다. 금리 상승에 따른 이자 부담도 점검하겠습니다.':r.change<0?'경기와 자금조달 여건을 살폈습니다. 환율과 부채 부담이 커지는지도 확인하겠습니다.':'지금 금리의 영향이 이어지는 가운데 물가와 경기 중 어느 위험이 더 커지는지 확인하겠습니다.';
  return {intro:'공보관 · 통화정책방향 기자간담회를 시작합니다.',rate:'오늘 기준금리는 '+num(s.rate)+'에서 '+num(r.rate)+'로 '+(r.change?'조정했습니다.':'유지했습니다.'),
  vote:stats??((r.runoff?'결선 표결 · ':'표결 · ')+votes),
- economy:'전년 동월 대비 물가상승률의 모형값은 '+num(s.inflation)+', 게임의 월별 경기 흐름 지표는 '+num(s.growth,'점')+'입니다. 원/달러 환율은 '+money(s.fx)+', 미국 금리의 모형값은 '+num(s.fed)+'입니다. 가계신용 연율은 '+num(s.debt)+', 금융위험은 '+num(s.stress,'점')+'입니다.',
+ economy:'소비자물가 상승률 '+num(s.inflation)+', 실질 GDP 성장률 전망 '+num(macro.gdpForecast)+' (직전대비 '+(macro.gdpRevision>=0?'+':'')+num(macro.gdpRevision,'%p')+', GDP갭률 '+num(macro.gdpGap)+')입니다. 원/달러 환율은 '+money(s.fx)+', 미국 기준금리는 '+num(s.fed)+'입니다. 가계신용 증가율은 '+num(s.debt)+', 금융위험은 '+num(s.stress,'/100')+'입니다.',
  reasoning:adopted+' 6개월 물가상승률 방향 전망은 '+r.forecast+'입니다. 다음 결정은 새 지표와 위험을 살핀 뒤 위원회에서 논의하겠습니다.'};
 }
 function questions(r,records,inaugural){
  const s=r.origin, last=records.at(-1), old=last?.origin??s;
+ const macro=derivedMacro(s,last?.origin);
  const incident=id=>r.incidents?.some(e=>e.id===id);
  const groups=[];
  const add=(id,tag,priority,question,evidence)=>groups.push({id,tag,priority,question,evidence});
@@ -1193,13 +1265,13 @@ function questions(r,records,inaugural){
  const actual=r.change>0?'raise':r.change<0?'cut':'hold';
  const favorite=watch?.favorite;
  const word={raise:'인상',hold:'동결',cut:'인하'};
- if(watch&&favorite!==actual)add('surprise','decision',110,'BOK워치에서 '+word[favorite]+'이 '+watch.probabilities[favorite]+'%였는데 오늘은 '+word[actual]+'입니다. 시장은 다르게 봤는데요. 위원회는 뭘 더 중요하게 봤습니까?','시장은 '+num(watch.expected)+'를 예상했지만, 오늘 결정은 '+num(r.rate)+'입니다. 위원들이 본 건 물가 '+num(s.inflation)+'와 경기 '+num(s.growth,'점')+'을 비롯한 국내 경제 여건입니다.');
+ if(watch&&favorite!==actual)add('surprise','decision',110,'BOK워치에서 '+word[favorite]+'이 '+watch.probabilities[favorite]+'%였는데 오늘은 '+word[actual]+'입니다. 시장은 다르게 봤는데요. 위원회는 뭘 더 중요하게 봤습니까?','시장은 '+num(watch.expected)+'를 예상했지만, 오늘 결정은 '+num(r.rate)+'입니다. 위원들이 본 건 물가 '+num(s.inflation)+'와 성장률 전망 '+num(macro.gdpForecast)+', GDP갭률 '+num(macro.gdpGap)+'을 비롯한 국내 경제 여건입니다.');
  else if(r.change&&last?.change===r.change)add('streak','decision',106,'두 회의 연속 '+moveWord(r.change)+'입니다. 같은 방향으로 더 움직일 조건은 무엇입니까?','두 차례 결정이 소비와 대출에 미치는 영향을 확인하고 다음 의결을 논의하겠습니다.');
  else if(!r.review&&new Set((r.runoff??r.votes).map(v=>v.vote)).size>1)add('split','decision',103,'총재님, 표가 갈렸는데요. 회의에서 어떤 점을 두고 의견이 달랐습니까?','다른 금리 의견도 있었습니다. 다만 표결 숫자만 보고 위원 한 분 한 분의 이유를 제가 대신 말씀드리긴 어렵습니다.');
- else add('decision','decision',100,'오늘 '+moveWord(r.change)+'을 결정하는 데 어떤 지표를 가장 중요하게 봤습니까?','물가상승률 '+num(s.inflation)+'와 경기 흐름 '+num(s.growth,'점')+', 금융위험 '+num(s.stress,'점')+'을 함께 봤습니다.');
+ else add('decision','decision',100,'오늘 '+moveWord(r.change)+'을 결정하는 데 어떤 지표를 가장 중요하게 봤습니까?','소비자물가 상승률 '+num(s.inflation)+'와 성장률 전망 '+num(macro.gdpForecast)+', 금융위험 '+num(s.stress,'/100')+'을 함께 봤습니다.');
  if(r.dots||r.question?.prior)add('dots','communication',r.dots?96:53,'점도표 중앙값 '+num(r.dots?.median??r.question.prior.median)+'인데요. 오늘 금리 '+num(r.rate)+'에서 다음 회의에 움직일 수 있다는 뜻인가요?','지금 여건이 이어진다는 전제에서 위원들이 6개월 뒤를 내다본 겁니다. 다음 회의에서 언제, 어느 쪽으로 움직일지는 그때 지표를 보고 판단하겠습니다.');
  if(r.goal){
- const g=r.goal,unit=metrics[g.key][1]==='%'?'%':'점';
+ const g=r.goal,unit=metrics[g.key][1]==='%'?'%':'/100';
  const target=(g.min!==null&&g.limit!==null?num(g.min,unit)+'~'+num(g.limit,unit):g.limit!==null?num(g.limit,unit)+' 이하':num(g.min,unit)+' 이상');
  const forecast=goalForecast(s,g.months).find(x=>x.rate===r.rate)?.center[g.key];
  add('target','communication',94,'이번에 내건 목표, 다음 평가 때까지 달성할 수 있다고 보십니까?','이번 평가의 목표는 '+metrics[g.key][0]+' '+target+'입니다. 의결 금리의 무충격 기준 전망은 '+num(forecast,unit)+'이고 대외 충격에 따라 달라질 수 있습니다.');
@@ -1211,19 +1283,19 @@ function questions(r,records,inaugural){
  if(check)add('error','communication',97,check.date+'의 물가 방향은 '+check.forecast+'으로 제시했는데 확인된 결과는 '+check.actual+'이었습니다. 어느 전제를 다시 보십니까?','이전 전망과 실현 방향이 달랐습니다. 유가·수요·환율의 영향을 나눠 다시 보겠습니다.');
  const prior=last?.conference?.answers.find(a=>a.signal!==0);
  if(prior&&Math.abs(s.inflation-old.inflation)>.1)add('memory','communication',86,'지난 회의에서 '+(prior.signal>0?'인상':'인하')+' 검토 조건을 밝혔습니다. 이후 물가상승률이 '+num(old.inflation)+'에서 '+num(s.inflation)+'로 바뀌었는데 판단도 바뀌었습니까?','지난 회의 조건과 이번 지표를 비교하고 있습니다. 판단을 바꿀 경우 달라진 전제를 함께 밝히겠습니다.');
- if(incident('chips'))add('export','macro',88,'반도체 호황이 이어지는데 소비 흐름은 '+num(s.consumption,'점')+'입니다. 수출 개선이 내수로 이어졌다고 평가하십니까?','수출 호황과 소비 회복을 구분해야 합니다. 내수와 고용으로 퍼지는지 시차를 두고 확인하겠습니다.');
- if(s.growth<s.capacity-.3)add('slump','macro',82,'경기 흐름이 '+num(s.growth,'점')+'으로 기초체력 '+num(s.capacity,'점')+'에 못 미칩니다. 현재 금리가 경기 부담을 키우는 것 아닙니까?','대출금리 '+num(s.loan)+'가 가계와 기업에 주는 부담을 봅니다. 이 경기 점수만으로 GDP 침체를 확정할 수는 없습니다.');
+ if(incident('chips'))add('export','macro',88,'반도체 호황이 이어지는데 민간소비 증가율은 '+num(macro.privateConsumption)+'입니다. 수출 개선이 내수로 이어졌다고 평가하십니까?','수출 호황과 소비 회복을 구분해야 합니다. 내수와 고용으로 퍼지는지 시차를 두고 확인하겠습니다.');
+ if(macro.gdpGap<-0.5||s.growth<s.capacity-.3)add('slump','macro',82,'성장률 전망이 '+num(macro.gdpForecast)+'로 낮아지고 GDP갭률도 '+num(macro.gdpGap)+'로 마이너스가 심화되고 있습니다. 현재 금리가 경기 부담을 키우는 것 아닙니까?','대출금리 '+num(s.loan)+'가 가계와 기업에 주는 부담을 봅니다. 단기 지표만으로 저성장 고착화를 단정할 수는 없습니다.');
  if(s.inflation>2.2)add('prices','macro',80,'물가상승률이 '+num(s.inflation)+'입니다. 목표 복귀가 늦어질 가능성과 근원물가 흐름을 어떻게 봅니까?','전체 물가의 모형값은 '+num(s.inflation)+'입니다. 이 발표에서는 근원물가 수치를 따로 제시할 수 없고 공급과 수요 요인을 구분해 보겠습니다.');
  if(s.fx-old.fx>15)add('fx','markets',92,'원/달러가 '+money(old.fx)+'에서 '+money(s.fx)+'로 올랐습니다. 외국인 자금이 빠졌다고 보고 계십니까?','환율 상승은 수입 비용을 높일 수 있습니다. 환율 숫자만으로 외국인 자금 흐름을 확인할 수는 없습니다.');
  if(last?.watchResult?.reaction.longBps>15)add('bonds','markets',87,'직전 회의 직후 장기금리가 '+num(last.watchResult.reaction.longBps,'bp')+' 올랐습니다. 정책금리 전망 외에 어떤 요인을 보십니까?','장기금리는 정책 경로뿐 아니라 금융위험과 장기 자금 수급에도 반응합니다.');
  if(incident('oil')||incident('war'))add('oil','markets',91,'기록된 유가 공급 충격이 물가에 먼저 반영됩니까, 가계 구매력에 먼저 반영됩니까?','브렌트유 모형 가격은 배럴당 '+num(s.oil,'달러')+'입니다. 에너지 비용 상승과 구매력 약화를 함께 살펴야 합니다.');
  if(incident('fed')||s.fed!==old.fed)add('fed','markets',84,'미국 금리 모형값이 '+num(s.fed)+'입니다. 미국의 결정에 맞춰 움직일 필요가 있습니까?','금리차가 환율에 미치는 영향을 살피되 국내 물가와 금융 여건을 종합해 판단하겠습니다.');
- if(incident('finance')||s.stress>45)add('credit','stability',98,'금융위험 '+num(s.stress,'점')+'입니다. 자금 공급과 기준금리로 해결해야 할 문제가 어떻게 다릅니까?','금리는 경제 전반에 영향을 주고 단기 자금 대책은 시장 기능에 초점을 둡니다. 두 수단의 효과와 비용을 따로 점검하겠습니다.');
+ if(incident('finance')||s.stress>45)add('credit','stability',98,'금융위험 '+num(s.stress,'/100')+'입니다. 자금 공급과 기준금리로 해결해야 할 문제가 어떻게 다릅니까?','금리는 경제 전반에 영향을 주고 단기 자금 대책은 시장 기능에 초점을 둡니다. 두 수단의 효과와 비용을 따로 점검하겠습니다.');
  if(s.debt>=4||s.housing>=2)add('debt','stability',75,'가계신용 연율이 '+num(s.debt)+', 주택가격 흐름 값은 '+num(s.housing)+'입니다. 서울 주택과 자영업자 연체까지 악화됐다고 보십니까?','전국 모형의 주택·신용 수치입니다. 서울 지역이나 연체율은 이 수치로 확인할 수 없습니다. 은행 대출금리와 대출 증가를 함께 살피겠습니다.');
  if(incident('fiscal'))add('fiscal','government',95,'공개된 추가경정예산이 내수를 떠받칠 경우, 위원회는 물가 판단을 어떻게 바꿀 계획입니까?','재정의 규모와 집행 시점이 중요합니다. 그 수요 효과와 물가 영향을 확인한 뒤 위원회가 독립적으로 결정하겠습니다.');
  const politics=r.government?.event?.id;
  if(politics==='hearing'||politics==='minister')add('independence','government',89,politics==='hearing'?'국회의 경기 대응 요구가 금리 판단에 얼마나 영향을 줬습니까?':'정부와 경기 진단이 다를 수 있습니다. 정부의 인하 요구가 들어와도 금리 결정 기준을 지키실 겁니까?','정부의 정책 효과는 경제 전망에 반영하되 기준금리는 위원회가 공개 지표와 표결로 결정합니다.');
- add('framework','macro',1,'다음 의결 전까지 어떤 자료가 새로 나오면 판단을 바꾸겠습니까?','물가상승률과 경기 흐름, 금융위험이 함께 움직이는지 확인하겠습니다.');
+ add('framework','macro',1,'다음 의결 전까지 어떤 자료가 새로 나오면 판단을 바꾸겠습니까?','소비자물가와 경제성장률 전망, 금융위험이 함께 움직이는지 확인하겠습니다.');
  add('balance','stability',0,'대출이자는 '+num(s.loan)+'입니다. 총재가 지켜볼 금융 비용은 무엇입니까?','가계와 기업의 조달 부담, 대출 증가와 금융시장 기능을 함께 보겠습니다.');
  return groups.sort((a,b)=>b.priority-a.priority).slice(0,3);
 }
@@ -1248,10 +1320,11 @@ function conferenceChoices(game,item){
  }
  };
  const frame=perspective[item.tag]?.[game.background]??'';
- const condition=item.tag==='stability'||item.tag==='markets'?'금융위험과 환율이 안정되는지를 ':item.tag==='macro'?'다음 물가와 소비 지표를 ':'새 물가·경기·금융지표를 ';
+ const condition=item.tag==='stability'||item.tag==='markets'?'금융위험과 환율이 안정되는지를 ':item.tag==='macro'?'다음 물가와 소비 지표를 ':'새 물가·성장·금융지표를 ';
  const move=s.inflation>2.45?1:s.growth<s.capacity-.3&&s.inflation<2.3?-1:0;
- const moveText=move>0?'물가 압력이 이어지면 추가 인상을 검토하겠습니다.':move<0?'경기 부진이 깊어지고 물가가 안정되면 인하를 검토하겠습니다.':'현 수준의 영향을 먼저 확인하겠습니다. 새 지표에 따라 동결 여부를 다시 논의하겠습니다.';
- const evidence=item.id==='follow'?(item.prompt==='pledge'?'유가나 환율이 달라지면 물가 경로를 다시 계산해야 합니다. 수치 목표는 관측값에 따라 재검토하겠습니다.':move>0?'전년 동월 대비 물가 '+num(s.inflation)+'와 예상 물가 '+num(s.expectations)+'를 함께 보겠습니다. 두 지표가 높은 수준에 머무는지 확인하겠습니다.':move<0?'경기 흐름 '+num(s.growth,'점')+'과 소비 '+num(s.consumption,'점')+'가 더 약해져도 물가 안정이 이어지는지 보겠습니다.':'대출금리 '+num(s.loan)+'가 내수를 얼마나 누르는지, 물가 '+num(s.inflation)+'가 목표에 가까워지는지를 함께 확인하겠습니다.'):item.evidence;
+ const moveText=move>0?'물가 압력이 이어지면 추가 인상을 검토하겠습니다.':move<0?'성장 둔화가 깊어지고 물가가 안정되면 인하를 검토하겠습니다.':'현 수준의 영향을 먼저 확인하겠습니다. 새 지표에 따라 동결 여부를 다시 논의하겠습니다.';
+ const macro=derivedMacro(s);
+ const evidence=item.id==='follow'?(item.prompt==='pledge'?'유가나 환율이 달라지면 물가 경로를 다시 계산해야 합니다. 수치 목표는 관측값에 따라 재검토하겠습니다.':move>0?'전년 동월 대비 물가 '+num(s.inflation)+'와 기대인플레이션 '+num(s.expectations)+'를 함께 보겠습니다. 두 지표가 높은 수준에 머무는지 확인하겠습니다.':move<0?'성장률 전망 '+num(macro.gdpForecast)+'과 민간소비 증가율 '+num(macro.privateConsumption)+'가 더 약해져도 물가 안정이 이어지는지 보겠습니다.':'대출금리 '+num(s.loan)+'가 내수를 얼마나 누르는지, 물가 '+num(s.inflation)+'가 목표에 가까워지는지를 함께 확인하겠습니다.'):item.evidence;
  const common=[
  {id:'explain',label:'수치와 근거를 들어 답한다',text:evidence+frame,signal:0,kind:'evidence'},
  {id:'guide',label:move?'다음 금리 조정을 검토할 조건을 밝힌다':'동결을 재검토할 조건을 밝힌다',text:evidence+' '+moveText,signal:move,kind:'guidance'},
@@ -1355,8 +1428,8 @@ function frontPage(game){
  const scored=[
  [100*Number(events.some(e=>e.id==='finance'))+Math.max(0,m('stress'))*4,'stress',events.some(e=>e.id==='finance')?'자금시장 덮친 신용 경색…한은, 금리냐 유동성이냐':'금융위험 커졌다…돈 빌리기 더 어려워지나','자금 공급으로 시장 기능을 지킬 필요와 신용 위험을 억제할 필요가 맞선다.'],
  [Math.max(0,m('fx'))*.85,'fx','원화값 밀리자 수입비용 비상…한은의 고민 깊어졌다','환율이 수입물가에 미칠 영향과 내수의 이자 부담을 함께 살펴야 한다.'],
- [s.inflation>2.3&&s.growth<s.capacity-.2&&m('growth')<0?25+Math.max(0,-m('growth'))*35:0,'inflation','물가는 목표 위, 경기는 뒷걸음…한은의 진퇴양난','물가를 억제하는 정책이 취약한 내수에 줄 부담도 따져야 한다.'],
- [Math.abs(s.inflation-2)<Math.abs(o.inflation-2)&&m('growth')>.05?25+m('growth')*26:0,'growth','물가 2%에 한발 더…경기 회복, 이번엔 이어질까','물가가 2%에 가까워지는 흐름과 소비·신용의 회복 속도를 함께 살펴야 한다.'],
+ [s.inflation>2.3&&s.growth<s.capacity-.2&&m('growth')<0?25+Math.max(0,-m('growth'))*35:0,'inflation','물가는 목표 위, 성장률은 둔화…한은의 진퇴양난','물가를 억제하는 정책이 취약한 내수에 줄 부담도 따져야 한다.'],
+ [Math.abs(s.inflation-2)<Math.abs(o.inflation-2)&&m('growth')>.05?25+m('growth')*26:0,'growth','물가 2%에 한발 더…성장률 반등, 이번엔 이어질까','물가가 2%에 가까워지는 흐름과 소비·신용의 회복 속도를 함께 살펴야 한다.'],
  [Math.max(0,m('debt'))*27,'debt','빨라진 가계대출…경기 살리다 빚 커질라','내수 지원이 추가 차입과 금융위험으로 번지는지 확인할 필요가 있다.'],
  [Math.max(.1,Math.abs(m('inflation'))*32),'inflation',priceMove>0?'빨라진 물가…경기 떠받칠 여력 줄어드나':priceMove<0?'물가 오름세 한풀 꺾였다…내수도 살아날까':'물가 제자리…가계는 이자 부담 언제 덜까','이번 변화가 일시적인지 확인하면서 가계와 기업의 자금 부담을 살펴야 한다.'],
  ];
@@ -1365,8 +1438,8 @@ function frontPage(game){
  const quiet=Array.from({length:months},()=>calm);
  const policy=project(o,r.rate,quiet).at(-1);
  const held=project(o,o.rate,quiet).at(-1);
- const unit=metrics[key][1], delta=unit==='%'?'%p':unit==='/100'?'점':unit;
- const measure=k=>metrics[k][0]+' '+o[k].toFixed(2)+(metrics[k][1]==='/100'?'점':metrics[k][1])+' → '+s[k].toFixed(2)+(metrics[k][1]==='/100'?'점':metrics[k][1]);
+ const unit=metrics[key][1], delta=unit==='%'?'%p':unit==='/100'?'/100':unit;
+ const measure=k=>metrics[k][0]+' '+o[k].toFixed(2)+(metrics[k][1]==='/100'?'/100':metrics[k][1])+' → '+s[k].toFixed(2)+(metrics[k][1]==='/100'?'/100':metrics[k][1]);
  const publishedGoal=r.conference?.answers.some(a=>a.topic==='target'&&a.kind!=='caution');
  const gov=r.government?.event?.id;
  const publicEvent=gov==='minister'?'재정경제부는 현 금리가 경기 회복을 늦춘다는 입장을 공개했다.':gov==='hearing'?'국회 국정감사에서 의결과 전망 근거를 질의했다.':null;
@@ -1389,27 +1462,29 @@ function frontPage(game){
  }
  const previousHeadline=game.records.at(-2)?.article?.headline;
  if(headline===previousHeadline){
-  const mark=key==='fx'?Math.round(s.fx).toLocaleString('ko-KR')+'원':s[key].toFixed(2)+(metrics[key][1]==='/100'?'점':metrics[key][1]);
+  const mark=key==='fx'?Math.round(s.fx).toLocaleString('ko-KR')+'원':s[key].toFixed(2)+(metrics[key][1]==='/100'?'/100':metrics[key][1]);
   headline=headline.split('…')[0]+'…'+metrics[key][0]+' '+mark;
  }
  const comparisonSentence=(n,reference)=>{
   const rounded=Number(n.toFixed(2));
   return reference+(rounded===0?'와 값이 같았다.':'와 비교해 '+Math.abs(rounded).toFixed(2)+delta+' '+(rounded>0?'높았다.':'낮았다.'));
  };
- const secondary=[measure('inflation')+' · '+measure('growth'), '직전 의결 '+r.rate.toFixed(2)+'% '+direction+(names.length?' · '+names[0]:'')];
+ const macroS=derivedMacro(s,o);
+ const macroO=derivedMacro(o);
+ const secondary=[measure('inflation')+' · 실질 GDP 성장률 전망 '+macroS.gdpForecast.toFixed(1)+'%', '직전 의결 '+r.rate.toFixed(2)+'% '+direction+(names.length?' · '+names[0]:'')];
  const leads={
  stress:'가계와 기업이 돈을 빌리기 어려워질 수 있다는 점이 이번 회의 이후 부각됐다. 기준금리 조정과 자금시장 대응은 영향 범위가 다르다.',
  fx:'달러를 사는 데 드는 원화가 늘었다. 원유 등 달러로 결제하는 품목의 원화 비용이 커질 수 있어 국내 물가에도 부담이다.',
- growth:crossesTarget?'경기 흐름은 개선됐지만 물가상승률이 2%선을 넘어섰다. 다음 회의는 회복의 속도와 물가 압력을 함께 판단해야 한다.':r.rate<o.rate?'금리 인하 이후 경기 흐름이 나아졌다. 같은 기간 물가상승률도 2%에 가까워졌다.':'금리 '+direction+' 기간 경기 흐름이 개선됐다. 소비와 투자 지표를 보면 회복이 어느 부문에서 시작됐는지 가늠할 수 있다.',
+ growth:crossesTarget?'경제성장률 전망은 개선됐지만 물가상승률이 2%선을 넘어섰다. 다음 회의는 회복의 속도와 물가 압력을 함께 판단해야 한다.':r.rate<o.rate?'금리 인하 이후 성장률 전망이 개선됐다. 같은 기간 물가상승률도 2%에 가까워졌다.':'금리 '+direction+' 기간 경제성장률 전망이 개선됐다. 소비와 투자 지표를 보면 회복이 어느 부문에서 시작됐는지 가늠할 수 있다.',
  debt:'신용 증가가 소비 회복을 뒷받침할 수 있지만 상환 부담도 남긴다. 대출금리와 경기 지표를 함께 볼 필요가 있다.',
- inflation:s.growth<s.capacity-.2&&s.inflation>2.3?'물가가 2%를 웃도는 가운데 경기 흐름도 약하다. 물가 대응에 무게를 두면 내수 부담이 커질 수 있다.':weakening?'소비 흐름 점수도 하락했다. 물가 상승세가 둔화된 구간이라도 가계의 소비 여건이 나아졌다고 판단하기는 어렵다.':recovering?'소비 흐름은 개선됐다. 생활비와 대출 이자 부담이 어느 정도 줄었는지는 별도 지표로 확인해야 한다.':'소비 흐름은 큰 변화가 없었다. 물가상승률 변화가 생활비에 같은 폭으로 반영되지는 않는다.',
+ inflation:s.growth<s.capacity-.2&&s.inflation>2.3?'물가가 2%를 웃도는 가운데 경제성장률도 둔화됐다. 물가 대응에 무게를 두면 내수 부담이 커질 수 있다.':weakening?'민간소비 증가율도 하락했다. 물가 상승세가 둔화된 구간이라도 가계의 소비 여건이 나아졌다고 판단하기는 어렵다.':recovering?'민간소비 증가율이 개선됐다. 생활비와 대출 이자 부담이 어느 정도 줄었는지는 별도 지표로 확인해야 한다.':'민간소비는 큰 변화가 없었다. 물가상승률 변화가 생활비에 같은 폭으로 반영되지는 않는다.',
  };
  const inaugural=game.records.length===1?game.inaugural?.answers.find(a=>a.topic==='priority'):null;
  const body=[
   leads[key],
   '전년 동월 대비 물가상승률은 '+o.inflation.toFixed(2)+'%에서 '+s.inflation.toFixed(2)+'%로 '+priceDirection+'. '+priceContext+(key==='inflation'?'':' 이번 1면이 주목한 지표는 '+measure(key)+'이다.'),
   '직전 금통위는 기준금리를 '+r.rate.toFixed(2)+'%로 '+direction+'했다. '+(r.rate===o.rate?'동결을 선택해 이번 금리안과 동결 경로는 일치한다.':'새 충격이 없다는 가정에서 '+metrics[key][0]+' 모형값은 '+comparisonSentence(policy[key]-held[key],'동결 경로'))+' 실제 관측값은 '+comparisonSentence(s[key]-policy[key],'무충격 경로')+(names.length?' 이 기간 공개된 사건에는 '+names.join(' · ')+'이 포함됐다.':''),
-  '은행 대출금리는 '+o.loan.toFixed(2)+'%에서 '+s.loan.toFixed(2)+'%로 움직였다. 소비 흐름은 '+o.consumption.toFixed(2)+'점에서 '+s.consumption.toFixed(2)+'점으로 '+(recovering?'개선됐다.':weakening?'약해졌다.':'큰 변화가 없었다.')+(r.poll?' 게임 속 가상 여론조사의 국민 지지도는 '+r.poll.approval.toFixed(1)+'점이다.':'')+(publicEvent?' '+publicEvent:''),
+  '은행 대출금리는 '+o.loan.toFixed(2)+'%에서 '+s.loan.toFixed(2)+'%로 움직였다. 민간소비 증가율은 '+macroO.privateConsumption.toFixed(1)+'%에서 '+macroS.privateConsumption.toFixed(1)+'%로 '+(recovering?'개선됐다.':weakening?'약해졌다.':'큰 변화가 없었다.')+(r.poll?' 게임 속 가상 여론조사의 국민 지지도는 '+r.poll.approval.toFixed(1)+'점이다.':'')+(publicEvent?' '+publicEvent:''),
   ...(inaugural?['신년 기자간담회에서 총재는 '+inaugural.label+'에 중점을 두겠다고 밝혔다. 당시 발언은 “'+inaugural.text+'”였다. 첫 의결 금리는 '+r.rate.toFixed(2)+'%다.']:[]),
   ...(publishedGoal&&r.goalResult?['기자회견에서 공개한 단기 목표는 '+(r.goalResult.met?'달성':'미달')+'했다. 이 평가는 게임의 해당 기간 관측값에 따른 것이다.']:[]),
   ...(r.watchResult?['의결 금리는 사전 시장 예상 금리와 '+(Math.abs(r.watchResult.surprise)<.005?'소수점 둘째 자리까지 같았다.':Math.abs(r.watchResult.surprise).toFixed(2)+'%p 차이가 났다.')]:[]),
@@ -1476,7 +1551,13 @@ function opinions(s,focus,proposal=0,forecast='보합',market=openingMarket,game
  const persuasion=proposal*evidence>0?Math.sign(proposal)*Math.min(game.roster?.09:.18,Math.abs(evidence)*(plausible?.60:.30)):0;
  const judgment=score+persuasion;
  const risk=Object.keys(signals).sort((a,b)=>Math.abs(signals[b])-Math.abs(signals[a]))[0];
- const details={prices:'물가상승률 '+s.inflation.toFixed(2)+'%, 예상 물가상승률 '+s.expectations.toFixed(2)+'%',activity:'경기 흐름과 기초체력의 차이 '+(s.growth-s.capacity).toFixed(2)+'점',markets:'환율 '+Math.round(s.fx)+'원과 금융위험 '+Math.round(s.stress)+'점'};
+ const macro=derivedMacro(s,game.records?.at(-1)?.origin);
+ const activityText=macro.gdpRevision<0&&macro.gdpGap<0
+  ?'성장률 전망이 지난 회의보다 낮아졌습니다. GDP갭도 마이너스 폭이 커지고 있고요. 지금은 금리 인하를 검토할 필요가 있다고 봅니다.'
+  :macro.gdpGap>0
+  ?'성장률 전망이 '+macro.gdpForecast.toFixed(1)+'%로 견조하고 GDP갭률도 +'+macro.gdpGap.toFixed(1)+'%로 잠재생산을 웃돌아 수요측 물가 압력에 유의해야 합니다.'
+  :'실질 GDP 성장률 전망 '+macro.gdpForecast.toFixed(1)+'%, GDP갭률 '+macro.gdpGap.toFixed(1)+'% (경기동행지수 '+macro.cci.toFixed(1)+'p)';
+ const details={prices:'소비자물가 상승률 '+s.inflation.toFixed(2)+'%, 기대인플레이션 '+s.expectations.toFixed(2)+'%',activity:activityText,markets:'환율 '+Math.round(s.fx)+'원, 금융위험 '+Math.round(s.stress)+'/100'};
  const initial=score>raise?.25:score<cut?-.25:0;
  const vote=judgment>raise?.25:judgment<cut?-.25:0;
  const negotiated=game.context?.persuasion?.filter(a=>a.id===member.id&&a.proposal===proposal).at(-1);
@@ -1661,9 +1742,9 @@ function historicalVerdict(game,analysis){
  else if(trust>=76&&p.confidence>=71&&balanced)stewardship='시장의 신뢰를 얻은 총재';
  const success=score.inflationError<.45?'연중 물가가 목표 부근을 유지했습니다.':
  assisted?'유동성 공급이 '+assisted+'개 회의 구간에서 무대응보다 금융 위험을 낮췄습니다.':
- score.growthGap>-.35?'경기 흐름이 연중 경제 기초체력 부근을 유지했습니다.':'금리 결정과 설명을 여덟 회의 기록으로 남겼습니다.';
+ score.growthGap>-.35?'실질 GDP 성장률이 잠재성장률 부근을 유지하며 견조했습니다.':'금리 결정과 설명을 여덟 회의 기록으로 남겼습니다.';
  const cost=fragility?'주택·신용 불균형이 2029년에도 부담으로 남았습니다.':
- score.growthGap<-.35?'연중 성장이 기초체력을 밑돌며 고용·소득 회복이 지연됐습니다.':
+ score.growthGap<-.35?'연중 성장이 잠재성장률을 밑돌며 GDP갭 마이너스가 심화되고 회복이 지연됐습니다.':
  p.confidence<65?'시장 신뢰가 약해져 금리 경로의 위험 프리미엄이 확대됐습니다.':
  score.inflationError>.55?'연중 목표에서 벗어난 물가가 생활비 부담을 남겼습니다.':'2029년 평가는 후임 정책과 새로운 외부 충격에도 영향을 받습니다.';
  const actions=game.records.filter(r=>r.ability);
@@ -1728,7 +1809,7 @@ function targetBoundary(g){
  if(min!==null&&limit!==null)return targetValue(key,min)+' ~ '+targetValue(key,limit);
  return limit!==null?targetValue(key,limit)+' 이하':targetValue(key,min)+' 이상';
 }
-const targetDelta=(k,n)=>signed(n)+(metrics[k][1]==='%'?'%p':'점');
+const targetDelta=(k,n)=>signed(n)+(metrics[k]?.[1]==='%'?'%p':metrics[k]?.[1]==='/100'?'/100':metrics[k]?.[1]==='p'?'p':metrics[k]?.[1]??'');
 function goalPanel(){
  const g=game.context?.goal,term=goalPeriod(game.turn,game.state);
  return '<section class="panel goal-panel"><div class="eyebrow">정책 목표</div><h2>무엇을 얼마나 개선할까요?</h2><p>'+term.label+'까지 · 모형 '+term.months+'개월</p>'+
@@ -1763,12 +1844,39 @@ function newspaperAgenda(){
  return '<aside class="panel agenda"><div class="eyebrow">직전 중앙일보 1면 · '+a.date+'</div><h2>'+a.headline+'</h2><p>'+a.issue+'</p></aside>';
 }
 function indicators(s){
- return '<section class="metrics" aria-label="경제지표">'+['rate','inflation','growth','fx','stress'].map(k=>'<button class="metric" data-metric="'+k+'"><span>'+metrics[k][0]+'</span><strong>'+value(k,s[k])+'</strong><span>'+({rate:'한국은행',inflation:'전년 동월 대비 모형값',growth:s.growth<s.capacity?'평상시보다 약한 경기':'평상시 수준 이상',fx:'미 달러당',stress:'모형 지수'})[k]+'</span></button>').join('')+'</section>';
+ const macro=derivedMacro(s,game.records?.at(-1)?.origin);
+ const list=[
+  ['rate',metrics.rate[0],value('rate',s.rate),'한국은행 기준금리'],
+  ['inflation',metrics.inflation[0],value('inflation',s.inflation),'전년 동월 대비'],
+  ['gdpForecast',metrics.gdpForecast[0],macro.gdpForecast.toFixed(1)+'%',macro.gdpGapStatus+' (GDP갭 '+macro.gdpGap.toFixed(1)+'%)'],
+  ['fx',metrics.fx[0],value('fx',s.fx),'달러당 원화값'],
+  ['stress',metrics.stress[0],value('stress',s.stress),'금융위험 지수']
+ ];
+ return '<section class="metrics" aria-label="경제지표">'+list.map(([k,name,val,desc])=>'<button class="metric" data-metric="'+k+'"><span>'+name+'</span><strong>'+val+'</strong><span>'+desc+'</span></button>').join('')+'</section>';
 }
 function reports(){
  const s=game.state;
+ const prev=game.records.at(-1)?.origin??null;
+ const macro=derivedMacro(s,prev);
  const baseline=project(s,s.rate,Array.from({length:3},()=>(calm))).at(-1);
- return '<div class="grid"><section class="panel"><div class="eyebrow">조사국</div><h2>경제전망</h2><p>3개월간 금리 동결과 추가 충격 없음 가정 시 물가 '+value('inflation',baseline.inflation)+', 경기 흐름 '+value('growth',baseline.growth)+'.</p><div class="muted">실업률 '+value('unemployment',s.unemployment)+' · 가계신용 증가율(연율) '+value('debt',s.debt)+'</div></section><section class="panel"><div class="eyebrow">금융시장국</div><h2>시장과 금융안정</h2><p>미국 실효금리 '+value('fed',s.fed)+' · 은행 대출금리 '+value('loan',s.loan)+'. 주택가격 증가율 '+value('housing',s.housing)+'.</p><div class="muted">원화 약세는 수입물가에, 대출금리는 가계와 기업의 상환 부담에 영향을 줍니다.</div></section></div>';
+ const baseMacro=derivedMacro(baseline,s);
+ return '<div class="grid">'
+  +'<section class="panel"><div class="eyebrow">조사국</div><h2>경제전망 및 거시경제 상황</h2>'
+  +'<div class="report-lead">'
+  +'<strong>2027년 실질 GDP 성장률 전망 '+macro.gdpForecast.toFixed(1)+'%</strong>'
+  +'<span class="muted"> (직전 전망 대비 '+(macro.gdpRevision>=0?'+':'')+macro.gdpRevision.toFixed(1)+'%p, 전기비 QoQ '+macro.gdpQoQ.toFixed(2)+'%, 전년동기비 YoY '+macro.gdpYoY.toFixed(1)+'%)</span>'
+  +'</div>'
+  +'<p><strong>GDP갭률 '+macro.gdpGap.toFixed(1)+'%</strong> · <em>'+macro.gdpGapStatus+'</em> <small class="muted">(게임 모형 추정치)</small><br>'
+  +'<strong>경기동행지수 순환변동치 '+macro.cci.toFixed(1)+'</strong> · 전월 대비 '+(macro.cciChange>=0?'+':'')+macro.cciChange.toFixed(1)+'포인트 '+(macro.cciChange>0?'상승':macro.cciChange<0?'하락':'보합')+' ('+macro.cciStatus+', 통계청 산식 기반 추정치)</p>'
+  +'<p><strong>민간소비 증가율 '+macro.privateConsumption.toFixed(1)+'%</strong> · <strong>설비투자 증가율 '+macro.facilityInvestment.toFixed(1)+'%</strong></p>'
+  +'<div class="muted">3개월 무충격 동결 시 물가 전망 '+value('inflation',baseline.inflation)+', 성장률 전망 '+baseMacro.gdpForecast.toFixed(1)+'% (GDP갭률 '+baseMacro.gdpGap.toFixed(1)+'%) · 실업률 '+value('unemployment',s.unemployment)+'</div>'
+  +'</section>'
+  +'<section class="panel"><div class="eyebrow">금융시장국</div><h2>시장과 금융안정</h2>'
+  +'<p><strong>가계신용 증가율(연율) '+value('debt',s.debt)+'</strong> · <strong>주택가격 상승률 '+value('housing',s.housing)+'</strong></p>'
+  +'<p>미국 연방기금금리 '+value('fed',s.fed)+' · 원/달러 환율 '+Math.round(s.fx)+'원<br>은행 연 대출금리 '+value('loan',s.loan)+' · 금융위험 '+value('stress',s.stress)+'</p>'
+  +'<div class="muted">원화 약세는 수입물가에, 대출금리는 가계·기업의 상환 부담과 내수 소비에 파급시차를 두고 영향을 줍니다.</div>'
+  +'</section>'
+  +'</div>';
 }
 
 function office(){
@@ -1835,7 +1943,7 @@ function comparison(r){
  const unit=metrics[metric][1]==='%'?'%p':metrics[metric][1];
  return '<section class="panel"><div class="eyebrow">평행세계</div><h2>같은 충격, 다른 결정</h2><p class="muted">두 경로는 같은 외부 충격을 받고 각 금리를 6개월간 유지합니다. 이후 회의 결정은 반영하지 않습니다.</p><div class="row"><label>비교 결정 <select id="alternative">'+moves.map(d=>'<option value="'+d+'" '+(d===alternative?'selected':'')+'>'+label(d)+'</option>').join('')+'</select></label><label>지표 <select id="metric-select">'+Object.keys(metrics).map(k=>'<option value="'+k+'" '+(k===metric?'selected':'')+'>'+metrics[k][0]+'</option>').join('')+'</select></label></div>'+chart(metric,[actual,alt])+'<div class="key"><span>의결 금리 유지 '+value(metric,a[metric])+'</span><span style="color:#376781">비교 금리 유지 '+value(metric,b[metric])+'</span></div><p class="muted">비교 금리 경로 − 의결 금리 경로 · 1개월 '+signed(alt[1][metric]-actual[1][metric])+' '+unit+' · 2개월 '+signed(alt[2][metric]-actual[2][metric])+' '+unit+' · 6개월 '+signed(b[metric]-a[metric])+' '+unit+'</p></section>';
 }
-const difference=(k,a,b)=>signed(a[k]-b[k])+(metrics[k][1]==='%'?'%p':metrics[k][1]==='/100'?'점':metrics[k][1]);
+const difference=(k,a,b)=>signed(a[k]-b[k])+(metrics[k][1]==='%'?'%p':metrics[k][1]==='/100'?'/100':metrics[k][1]);
 function result(){
  const r=game.records.at(-1), o=r.origin;
  const {actual:s,held,shocks}=meetingImpact(r);
@@ -1848,17 +1956,18 @@ function log(){
  return '<section class="panel"><div class="eyebrow">총재실 기록</div><h2>정책 일지</h2>'+(game.records.length?'<table class="table"><thead><tr><th>회의</th><th>제안</th><th>의결 금리</th><th>물가 전망</th></tr></thead><tbody>'+game.records.map(r=>'<tr><td>'+r.date+'</td><td>'+label(r.proposal)+'</td><td>'+value('rate',r.rate)+'</td><td>'+r.forecast+'</td></tr>').join('')+'</tbody></table>':'<p>첫 회의가 끝나면 이곳에 정책 기록이 쌓입니다.</p>')+'<p class="muted">재현 시드 '+game.seed+'</p></section>';
 }
 function model(){
- const guide='<section class="panel play-guide"><h1>게임 방법</h1><ol><li>총재 출신을 고르고 신년 기자회견에서 세 질문에 답합니다. 집무실에서 경제전망과 BOK워치를 확인합니다.</li><li>금통위에서 물가·경기·가계신용·금융위험 중 우선할 목표를 정합니다. 금리안별 전망을 비교하고 필요하면 위원을 설득합니다.</li><li>금리안을 제출하면 총재와 위원 여섯 명의 표로 결정합니다. 2·5·8·11월에는 6개월 뒤 금리 전망도 제시합니다.</li><li>기자회견에서 답변한 뒤 시장 반응과 중앙일보 1면을 읽고 다음 회의로 갑니다.</li><li>여덟 차례 금통위를 마치면 2029년 평가에서 임기 중 선택과 결과를 돌아봅니다.</li></ol><p>하단 경제 성적표에서 추이와 목표를 확인할 수 있습니다. 메뉴에서 저장하고 타이틀의 이어하기로 복귀하세요.</p></section>';
- return guide+'<section class="panel"><div class="eyebrow">데이터와 방법</div><h2>시뮬레이션 가정</h2><p>경기 흐름은 매월 갱신되는 게임 내부 점수입니다. 경제 기초체력을 뺀 차이를 점으로 표시합니다. 실제 GDP 성장률을 계산하는 지표와 구분합니다. 물가상승률은 현재 모형 수치이며 예상 물가상승률은 경제 주체의 전망 상태입니다. 시장 예상 금리는 정책금리와 별도로 형성됩니다.</p><p>2027년 수치는 가상입니다. 경제 엔진은 한국은행이 설명하는 금리·환율·신용 경로를 참고합니다. 계수와 초기 상태는 시나리오 가정이며, 경기 흐름은 월별 모형 지표입니다.</p><p>초기값 설정에 참고한 2026년 10월 기준금리 3.00%, 소비자물가 전년 동월 대비 2.8%, 9월 신규 대출금리 4.57%, 10월 미국 실효금리 3.88%는 당시 공표된 관측치입니다.</p><p>'+notice+'</p><p>중립 기준 2.50% 대비 금리 수준의 가중합이 성장·물가에 영향을 줍니다. 1~2개월에 직접 효과가 집중되고 성장에는 3개월, 물가에는 4개월까지 작은 가중치가 이어집니다. 금리 변경에 대한 시장 반응은 한 번 적용합니다. 부채 잔액·부채·주택 과열·기대물가·경제 기초체력은 매월 갱신합니다.</p><a href="'+scheduleSource+'">한국은행 2027년 회의 공지</a> · <a href="https://www.bok.or.kr/eng/main/contents.do?menuNo=400024">한국은행 통화정책 파급 경로</a> · <a href="https://fred.stlouisfed.org/series/FEDFUNDS">FRED FEDFUNDS</a></section>';
+ const guide='<section class="panel play-guide"><h1>게임 방법</h1><ol><li>총재 출신을 고르고 신년 기자회견에서 세 질문에 답합니다. 집무실에서 경제전망과 BOK워치를 확인합니다.</li><li>금통위에서 물가·성장·가계신용·금융위험 중 우선할 목표를 정합니다. 금리안별 전망을 비교하고 필요하면 위원을 설득합니다.</li><li>금리안을 제출하면 총재와 위원 여섯 명의 표로 결정합니다. 2·5·8·11월에는 6개월 뒤 금리 전망도 제시합니다.</li><li>기자회견에서 답변한 뒤 시장 반응과 중앙일보 1면을 읽고 다음 회의로 갑니다.</li><li>여덟 차례 금통위를 마치면 2029년 평가에서 임기 중 선택과 결과를 돌아봅니다.</li></ol><p>하단 경제 성적표에서 추이와 목표를 확인할 수 있습니다. 메뉴에서 저장하고 타이틀의 이어하기로 복귀하세요.</p></section>';
+ return guide+'<section class="panel"><div class="eyebrow">데이터와 방법</div><h2>시뮬레이션 가정</h2><p>실질 GDP 성장률, GDP갭률, 경기동행지수 순환변동치는 통계청 및 한국은행 산식을 바탕으로 한 게임 모형 추정치입니다. 실제 경제지표 산출 기준을 참고하여 금리 조정이 성장률 전망과 GDP갭에 파급되도록 구성했습니다. 소비자물가 상승률은 전년 동월 대비 모형값이며 기대인플레이션율은 경제 주체의 전망 상태입니다. 시장 예상 금리는 정책금리와 별도로 형성됩니다.</p><p>2027년 수치는 가상입니다. 경제 엔진은 한국은행이 설명하는 금리·환율·신용 경로를 참고합니다. 계수와 초기 상태는 시나리오 가정입니다.</p><p>초기값 설정에 참고한 2026년 10월 기준금리 3.00%, 소비자물가 전년 동월 대비 2.8%, 9월 신규 대출금리 4.57%, 10월 미국 실효금리 3.88%는 당시 공표된 관측치입니다.</p><p>'+notice+'</p><p>중립 기준 2.50% 대비 금리 수준의 가중합이 성장·물가에 영향을 줍니다. 1~2개월에 직접 효과가 집중되고 성장에는 3개월, 물가에는 4개월까지 작은 가중치가 이어집니다. 금리 변경에 대한 시장 반응은 한 번 적용합니다. 부채 잔액·부채·주택 과열·기대물가·잠재성장률은 매월 갱신합니다.</p><a href="'+scheduleSource+'">한국은행 2027년 회의 공지</a> · <a href="https://www.bok.or.kr/eng/main/contents.do?menuNo=400024">한국은행 통화정책 파급 경로</a> · <a href="https://fred.stlouisfed.org/series/FEDFUNDS">FRED FEDFUNDS</a></section>';
 }
 function ending(){
  const analysis=reassess(game), s=game.state;
+ const endMacro=derivedMacro(s);
  const snapshots=[s,analysis.played[12],analysis.played[24]];
  const latest=snapshots[2], control=analysis.legacyControl[24], calmEnd=analysis.calmFuture[24];
  const inherited=legacyKeys.map(k=>'<tr><td>'+metrics[k][0]+'</td><td>'+value(k,s[k])+'</td><td>'+difference(k,s,analysis.baseline)+'</td></tr>').join('');
  const outcomes=['inflation','growth','stress','fx'].map(k=>'<tr><td>'+metrics[k][0]+'</td>'+snapshots.map(t=>'<td>'+value(k,t[k])+'</td>').join('')+'</tr>').join('');
  const attribution=['inflation','growth','stress','debtStock','imbalance'].map(k=>'<tr><td>'+metrics[k][0]+'</td><td>'+difference(k,latest,control)+'</td><td>'+difference(k,latest,calmEnd)+'</td></tr>').join('');
- return '<section class="end"><div class="eyebrow">2027년 / 여덟 회의 결산</div><h1>어떤 총재로 남을 것인가.</h1><p>물가 '+value('inflation',s.inflation)+' · 경기 흐름 '+value('growth',s.growth)+' · 금융위험 '+value('stress',s.stress)+'</p>'+button('review','마지막 결정 비교',false)+' '+button('reset','새 임기 시작')+'</section>'+endNewspaper(analysis)+lastPolicyReview(analysis)+newspaperArchive()+inauguralReview()+goalEnd(game.records)+pressArchive(game.records)+watchEnd(analysis)+'<div class="grid"><section class="panel"><h2>2027년 정책이 남긴 유산</h2><table class="table"><thead><tr><th>상태</th><th>12월 말</th><th>연중 동결 대비</th></tr></thead><tbody>'+inherited+'</tbody></table><p class="muted">비교 기준은 같은 2027년 충격 아래 시작 금리를 유지한 경제입니다.</p></section><section class="panel"><h2>2029년 역사적 재평가</h2><table class="table"><thead><tr><th>지표</th><th>2027</th><th>2028</th><th>2029</th></tr></thead><tbody>'+outcomes+'</tbody></table><p class="muted">2028~2029년은 공통 후임 정책으로 중립금리 '+value('rate',neutralRate)+'를 유지하는 가상 경로입니다.</p></section></div><section class="panel"><h2>2029년 성과를 바꾼 요인</h2><table class="table"><thead><tr><th>지표</th><th>물려준 경제 상태의 영향</th><th>2028~2029년 충격의 영향</th></tr></thead><tbody>'+attribution+'</tbody></table><p class="muted">유산의 영향은 2027년 말에 네 가지 누적 상태만 연중 동결 수준으로 바꾼 경로와 비교합니다. 외부 충격의 영향은 같은 유산에서 2028~2029년 충격을 제거한 경로와 비교합니다.</p></section>'+communicationEnding(analysis.communication)+'<div id="comparison">'+comparison(game.records.at(-1))+'</div>';
+ return '<section class="end"><div class="eyebrow">2027년 / 여덟 회의 결산</div><h1>어떤 총재로 남을 것인가.</h1><p>소비자물가 '+value('inflation',s.inflation)+' · 실질 GDP 성장률 '+value('growth',s.growth)+' (전망 '+endMacro.gdpForecast.toFixed(1)+'%, GDP갭률 '+endMacro.gdpGap.toFixed(1)+'%) · 금융위험 '+value('stress',s.stress)+'</p>'+button('review','마지막 결정 비교',false)+' '+button('reset','새 임기 시작')+'</section>'+endNewspaper(analysis)+lastPolicyReview(analysis)+newspaperArchive()+inauguralReview()+goalEnd(game.records)+pressArchive(game.records)+watchEnd(analysis)+'<div class="grid"><section class="panel"><h2>2027년 정책이 남긴 유산</h2><table class="table"><thead><tr><th>상태</th><th>12월 말</th><th>연중 동결 대비</th></tr></thead><tbody>'+inherited+'</tbody></table><p class="muted">비교 기준은 같은 2027년 충격 아래 시작 금리를 유지한 경제입니다.</p></section><section class="panel"><h2>2029년 역사적 재평가</h2><table class="table"><thead><tr><th>지표</th><th>2027</th><th>2028</th><th>2029</th></tr></thead><tbody>'+outcomes+'</tbody></table><p class="muted">2028~2029년은 공통 후임 정책으로 중립금리 '+value('rate',neutralRate)+'를 유지하는 가상 경로입니다.</p></section></div><section class="panel"><h2>2029년 성과를 바꾼 요인</h2><table class="table"><thead><tr><th>지표</th><th>물려준 경제 상태의 영향</th><th>2028~2029년 충격의 영향</th></tr></thead><tbody>'+attribution+'</tbody></table><p class="muted">유산의 영향은 2027년 말에 네 가지 누적 상태만 연중 동결 수준으로 바꾼 경로와 비교합니다. 외부 충격의 영향은 같은 유산에서 2028~2029년 충격을 제거한 경로와 비교합니다.</p></section>'+communicationEnding(analysis.communication)+'<div id="comparison">'+comparison(game.records.at(-1))+'</div>';
 }
 function dotRows(release,previous){
  const bounds=[release.current,previous?.current??release.current,...release.counts.map(r=>r.rate),...(previous?.counts??[]).map(r=>r.rate)];
@@ -1985,7 +2094,8 @@ function riskBrief(g=game){
  const b=briefing(g),last=g.records.at(-1);
  const previous=last?'<p class="muted">직전 의결 '+value('rate',last.rate)+' · 회의 이후 물가 '+difference('inflation',g.state,last.origin)+' · 성장 '+difference('growth',g.state,last.origin)+' · 외환 '+difference('fx',g.state,last.origin)+'</p>':'';
  const late=g.turn>=6?'<p class="muted">남은 의결 '+(8-g.turn)+'회 · 11월 금리의 누적 효과와 2028년 5월 조건부 전망은 역사 평가에서 다시 확인합니다.</p>':'';
- return '<section class="panel risk-brief"><h2>'+b.title+'</h2><p>'+b.detail+'</p>'+'<p class="muted">경기 흐름 − 기초체력 '+signed(g.state.growth-g.state.capacity)+'점 · 예상 물가상승률 '+value('expectations',g.state.expectations)+'</p>'+previous+late+(g.market?'<p class="muted">시장이 반영한 6개월 예상 금리 '+value('rate',g.market.expected)+' · 단기 시장금리 '+value('rate',g.market.yield)+'</p>':'')+'</section>';
+ const macro=derivedMacro(g.state,last?.origin);
+ return '<section class="panel risk-brief"><h2>'+b.title+'</h2><p>'+b.detail+'</p>'+'<p class="muted">성장률 전망 '+macro.gdpForecast.toFixed(1)+'% (GDP갭률 '+macro.gdpGap.toFixed(1)+'%, '+macro.gdpGapStatus+') · 기대인플레이션 '+value('expectations',g.state.expectations)+'</p>'+previous+late+(g.market?'<p class="muted">시장이 반영한 6개월 예상 금리 '+value('rate',g.market.expected)+' · 단기 시장금리 '+value('rate',g.market.yield)+'</p>':'')+'</section>';
 }
 function crisisScreen(){
  const events=game.context.events;
@@ -1996,7 +2106,8 @@ function crisisScreen(){
 function governmentScreen(){
  const e=game.context.government,b=backgrounds[game.background];
  const replies=Object.entries(politicalReplies[e.id]).map(([k,v])=>[k,k==='coordinate'&&b?b.government:v]);
- return '<section class="panel government '+(e.id==='president'?'government-president':e.id==='hearing'?'government-hearing':'government-ministry')+'"><div class="eyebrow">'+e.title+' / '+dates[game.turn]+'</div><h1>'+e.person+'</h1><div class="political-backdrop" aria-hidden="true"></div><div class="government-document"><span>'+(e.id==='president'?'대통령실 · 비공개 회동 기록':e.id==='hearing'?'국회 · 공개 질의 기록':'정부 · 정책 연락')+'</span><blockquote>“'+e.question+'”</blockquote></div><p>물가 '+value('inflation',game.state.inflation)+' · 경기 흐름 '+value('growth',game.state.growth)+' · 가계신용 증가율(연율) '+value('debt',game.state.debt)+'</p><form id="government-form"><fieldset><legend>총재 답변</legend>'+radio('governmentReply',replies,replies[0][0])+'</fieldset><button class="primary" type="submit">답변하고 금통위 입장</button></form></section>';
+ const macroGov=derivedMacro(game.state);
+ return '<section class="panel government '+(e.id==='president'?'government-president':e.id==='hearing'?'government-hearing':'government-ministry')+'"><div class="eyebrow">'+e.title+' / '+dates[game.turn]+'</div><h1>'+e.person+'</h1><div class="political-backdrop" aria-hidden="true"></div><div class="government-document"><span>'+(e.id==='president'?'대통령실 · 비공개 회동 기록':e.id==='hearing'?'국회 · 공개 질의 기록':'정부 · 정책 연락')+'</span><blockquote>“'+e.question+'”</blockquote></div><p>소비자물가 '+value('inflation',game.state.inflation)+' · 실질 GDP 성장률 '+value('growth',game.state.growth)+' (전망 '+macroGov.gdpForecast.toFixed(1)+'%, GDP갭률 '+macroGov.gdpGap.toFixed(1)+'%) · 가계신용 증가율(연율) '+value('debt',game.state.debt)+'</p><form id="government-form"><fieldset><legend>총재 답변</legend>'+radio('governmentReply',replies,replies[0][0])+'</fieldset><button class="primary" type="submit">답변하고 금통위 입장</button></form></section>';
 }
 function reviewScreen(){
  const r=game.pending;
@@ -2018,7 +2129,7 @@ function priorPolicy(r){
 }
 function endNewspaper(analysis){
  const verdict=historicalVerdict(game,analysis), s=verdict.score;
- const scores=[['2% 물가 목표와의 평균 거리',s.inflationError,'%p'],['기초체력 대비 평균 경기 흐름',s.growthGap,'점'],['평균 금융위험',s.stress,'점'],['월평균 환율 변동 폭',s.fxVolatility,'원'],['연말 정책 신뢰',s.trust,'점'],['위험을 낮춘 유동성 대응',verdict.assisted,'회']];
+ const scores=[['2% 물가 목표와의 평균 거리',s.inflationError,'%p'],['잠재성장률 대비 평균 GDP갭률',Number((0.75*s.growthGap).toFixed(2)),'%'],['평균 금융위험',s.stress,'/100'],['월평균 환율 변동 폭',s.fxVolatility,'원'],['연말 정책 신뢰',s.trust,'점'],['위험을 낮춘 유동성 대응',verdict.assisted,'회']];
  const meetings=game.records.map(r=>'<li><time>'+r.date+'</time> <strong>'+value('rate',r.rate)+'</strong> <span>'+label(r.change)+'</span></li>').join('');
  return '<article class="newspaper front-page"><header><p>회고 특집 1면 · 2029년 게임 속 가상 기사</p><div class="masthead joongang-logo" role="img" aria-label="중앙일보"></div><p>2029년 12월</p></header><h2>'+verdict.title+'</h2><p>'+verdict.success+' '+verdict.cost+'</p><p class="muted">'+verdict.stewardship+'</p><p class="muted">'+verdict.subtitle+'</p><p>총재 출신 '+(backgrounds[game.background]?.name??'기존 임기')+' · 근거에 따라 바뀐 위원 판단 '+verdict.convinced+'/'+verdict.attempts+'회</p><p class="muted">당신은 인기 있는 총재였는가, 아니면 역사에 남을 총재였는가?</p></article><div class="grid"><section class="panel"><h2>2027년 통화정책 성적표</h2><table class="table"><thead><tr><th>항목</th><th>결과</th></tr></thead><tbody>'+scores.map(([name,n,unit])=>'<tr><td>'+name+'</td><td>'+n.toFixed(2)+unit+'</td></tr>').join('')+'</tbody></table></section><section class="panel"><h2>8번의 기준금리 결정</h2><ol class="timeline">'+meetings+'</ol></section></div>'+politicalReport(game.politics,'2027년 말 지지도와 독립성');
 }
@@ -2039,7 +2150,7 @@ function abilityPanel(){
 function lastPolicyReview(analysis){
  const latest=analysis.played.at(-1), held=analysis.novemberHold, d=analysis.finalDot;
  const baseline=meetingImpact(game.records.at(-1)).held;
- return '<section class="panel legacy-brief"><h2>11월 결정이 남긴 차이</h2><p>11월 동결 대안 대비 2027년 말 · 물가 '+difference('inflation',game.state,baseline)+' · 경기 흐름 '+difference('growth',game.state,baseline)+'</p><p>같은 후임 금리와 외부 충격을 적용한 2029년 말 · 물가 '+difference('inflation',latest,held)+' · 경기 흐름 '+difference('growth',latest,held)+' · 가계부채 '+difference('debtStock',latest,held)+'</p>'+
+ return '<section class="panel legacy-brief"><h2>11월 결정이 남긴 차이</h2><p>11월 동결 대안 대비 2027년 말 · 소비자물가 '+difference('inflation',game.state,baseline)+' · 실질 GDP 성장률 '+difference('growth',game.state,baseline)+'</p><p>같은 후임 금리와 외부 충격을 적용한 2029년 말 · 소비자물가 '+difference('inflation',latest,held)+' · 실질 GDP 성장률 '+difference('growth',latest,held)+' · 가계부채 '+difference('debtStock',latest,held)+'</p>'+
  (d?'<p>'+d.target+' 조건부 점도표 중앙값 '+value('rate',d.median)+' · 11월 발표 뒤 시장 예상 '+(d.expected===null?'기록 없음':value('rate',d.expected))+' · 후임 경로의 가정 금리 '+value('rate',d.successorRate)+'</p><p class="muted">점도표와 시장 예상은 인계 시점의 소통 기록입니다. 후임 금리는 시뮬레이션 가정입니다.</p>':'')+'</section>';
 }
 function watchNumbers(f){
@@ -2115,7 +2226,8 @@ function dialoguePanel(){
  const counter=opening+(priorTalk?'지난 대화에선 '+label(priorTalk.final)+' 의견을 밝혔습니다. 이번 판단은 달라진 지표에 달렸습니다. ':'')+tone[member.evidence]+' '+opinion.detail;
  const g=game.context?.goal;
  const policyCase=g?goalForecast(game.state,g.months).find(r=>r.move===proposal):null;
- const goalEvidence=g?'<p>총재의 목표 '+metrics[g.key][0]+' '+targetBoundary(g)+' · '+label(proposal)+' 기준 전망 '+targetValue(g.key,policyCase.center[g.key])+' · 경기 흐름 '+value('growth',policyCase.center.growth)+' · 금융위험 '+value('stress',policyCase.center.stress)+'</p>':'';
+ const goalMacro=policyCase?derivedMacro(policyCase.center):null;
+ const goalEvidence=g?'<p>총재의 목표 '+metrics[g.key][0]+' '+targetBoundary(g)+' · '+label(proposal)+' 기준 전망 '+targetValue(g.key,policyCase.center[g.key])+' · 성장률 전망 '+goalMacro.gdpForecast.toFixed(1)+'% (GDP갭률 '+goalMacro.gdpGap.toFixed(1)+'%) · 금융위험 '+value('stress',policyCase.center.stress)+'</p>':'';
  return '<section class="panel dialogue character-scene"><div class="row"><div class="speaker">'+memberPortrait(member.id)+'<h2>'+member.name+' '+opinion.role+'</h2></div>'+button('close-member','닫기',false)+'</div><p>'+member.career+' · '+member.philosophy+' · '+policyPrinciple(member.id)+' · 정책적 신뢰 '+(game.memberTrust?.[member.id]??55)+'/100</p><p>현재 견해 '+label(opinion.vote)+' · '+opinion.detail+'</p><p class="muted">최근 투표 '+(history.join(' · ')||'기록 없음')+'</p>'+goalEvidence+
  (active?'<p class="persuasion-result '+(active.changed?'persuasion-changed':'persuasion-held')+'"><strong>'+(active.changed?'위원 의견 변경':'위원이 기존 의견 유지')+'</strong><br><strong>'+label(active.initial)+' → '+label(active.final)+'</strong> · '+(active.outcome??'이 회의의 설득 기록입니다.')+'<br>'+active.proof+'</p>'+(active.firstHardShift?'<aside class="debate-turn"><strong>회의의 전환점</strong><p>“'+member.philosophy+' 원칙은 그대로입니다. 이번에는 제시한 지표를 반영해 표를 한 단계 옮기겠습니다.”</p></aside>':''):opinion.vote===proposal?'<p>현재 안에 동의합니다. 의견이 다른 위원을 선택할 수 있습니다.</p>':persuasionLeft(game)<=0?'<p>이번 회의에 남은 개별 설득 기회가 없습니다.</p>':
  '<form id="persuasion-form">'+(argumentMethod?'<p><strong>총재</strong> · '+profile.argument+' ('+evidenceNames[argumentMethod]+')</p><blockquote>'+counter+'</blockquote><fieldset><legend>추가 답변</legend>'+radio('follow',[['crosscheck','현재 지표와 반대 증거를 함께 검토한다'],['insist','기존 정책 주장을 재확인한다'],...(argumentMethod===profile.bonus?[['specialist',profile.rebuttal]]:[])],'crosscheck')+'</fieldset><button class="primary" type="submit">위원의 최종 판단 확인</button>':
@@ -2126,20 +2238,21 @@ const scoreLabels={
  approval:'국민 지지도',trust:'정책 신뢰',independence:'중앙은행 독립성 인식',coordination:'정부와의 정책 공조',yield:'단기 시장금리'
 };
 const scoreGroups=[
- ['거시경제',['inflation','growth','consumption','investment']],
+ ['거시경제 (실제 통계 지표)',['inflation','gdpForecast','gdpGap','cci','consumption','investment']],
  ['금융시장',['rate','yield','fx']],
- ['금융안정',['debt','debtStock','housing','stress']],
+ ['금융안정',['debt','housing','stress']],
  ['정책 평가',['approval','trust','independence','coordination']]
 ];
-function scoreSnapshot(state,market,politics){
- return {...state,yield:market?.yield,trust:market?.trust,approval:politics?.approval,independence:politics?.independence,coordination:politics?.coordination};
+function scoreSnapshot(state,market,politics,prevState=null){
+ const macro=derivedMacro(state,prevState);
+ return {...state,...macro,yield:market?.yield,trust:market?.trust,approval:politics?.approval,independence:politics?.independence,coordination:politics?.coordination};
 }
 function scoreSnapshots(){
  const completed=game.records.at(-1);
  const previous=game.records.at(-2);
- const origin=scoreSnapshot(game.path[0],openingMarket,openingPolitics());
- const prior=completed?scoreSnapshot(completed.origin,previous?.market??openingMarket,previous?.politics??openingPolitics()):origin;
- const current=scoreSnapshot(game.state,game.market,game.politics);
+ const origin=scoreSnapshot(game.path[0],openingMarket,openingPolitics(),null);
+ const prior=completed?scoreSnapshot(completed.origin,previous?.market??openingMarket,previous?.politics??openingPolitics(),null):origin;
+ const current=scoreSnapshot(game.state,game.market,game.politics,completed?.origin??null);
  if(['dots','press'].includes(game.phase)&&game.pending)current.rate=game.pending.rate;
  return [origin,prior,current];
 }
@@ -2151,7 +2264,7 @@ function scoreValue(k,n){
 function scoreChange(k,from,to){
  if(!Number.isFinite(from)||!Number.isFinite(to))return '—';
  const delta=Number((to-from).toFixed(2));
- const unit=k==='yield'||metrics[k]?.[1]==='%'?'%p':k==='fx'?'원':'점';
+ const unit=k==='yield'||metrics[k]?.[1]==='%'?'%p':k==='fx'?'원':metrics[k]?.[1]==='p'?'p':metrics[k]?.[1]==='/100'?'/100':'점';
  return delta===0?'→ 보합':(delta>0?'↑ ':'↓ ')+Math.abs(delta).toFixed(2)+unit;
 }
 function economicHud(){
@@ -2159,12 +2272,12 @@ function economicHud(){
  const [,prev,now]=scoreSnapshots();
  const observed=game.state.month?new Date(Date.UTC(2027,game.state.month,0)).toISOString().slice(0,10):'2027-01-01';
  const item=k=>'<span><small>'+(metrics[k]?.[0]??scoreLabels[k])+'</small> <strong>'+scoreValue(k,now[k])+'</strong><small> '+scoreChange(k,prev[k],now[k])+'</small></span>';
- return '<section class="economic-hud" aria-label="상시 경제지표"><div class="hud-core"><span><small>관측 기준</small> <strong>'+observed+'</strong></span>'+['rate','inflation','fx'].map(item).join('')+button('scorecard','경제 성적표',false)+'</div><div class="hud-more" aria-label="경기와 정책 평가">'+['growth','approval','trust'].map(item).join('')+'<span class="hud-gdp">GDP 성장률 전망 · 모형 미산출</span></div></section>';
+ return '<section class="economic-hud" aria-label="상시 경제지표"><div class="hud-core"><span><small>관측 기준</small> <strong>'+observed+'</strong></span>'+['rate','inflation','fx'].map(item).join('')+button('scorecard','경제 성적표',false)+'</div><div class="hud-more" aria-label="경기와 정책 평가"><span><small>성장률 전망</small> <strong>'+now.gdpForecast.toFixed(1)+'%</strong><small> '+(now.gdpRevision>=0?'+':'')+now.gdpRevision.toFixed(1)+'%p</small></span>'+['approval','trust'].map(item).join('')+'</div></section>';
 }
 function scoreTable(){
  const snapshots=scoreSnapshots();
  const watch=['result','newspaper','end'].includes(game.phase)?(game.records.at(-1)?.article?.watch??game.records.at(-1)?.watchResult?.next?.press):game.context?.watch??currentWatch(game);
- return '<p>경제지표는 모형의 관측값입니다. GDP 성장률 전망은 산출하지 않으며 경기 흐름은 별도의 점수입니다.</p>'+
+ return '<p>경제지표는 모형의 관측값입니다. 실질 GDP 성장률, GDP갭률, 경기동행지수 순환변동치는 한국은행 및 통계청 산식을 기초로 산출한 게임 모형 추정치입니다.</p>'+
  scoreGroups.map(([title,ks])=>'<section><h3>'+title+'</h3><table class="table"><thead><tr><th>지표</th><th>취임</th><th>직전 회의 전</th><th>현재</th><th>직전 대비</th></tr></thead><tbody>'+ks.map(k=>'<tr><th scope="row">'+(metrics[k]?.[0]??scoreLabels[k])+'</th>'+snapshots.map(s=>'<td>'+scoreValue(k,s[k])+'</td>').join('')+'<td>'+scoreChange(k,snapshots[1][k],snapshots[2][k])+'</td></tr>').join('')+'</tbody></table></section>').join('')+
  (watch?'<section><h3>BOK워치 · '+watch.date+' 회의</h3><p>전망 기준 '+watch.asOf+' · 예상 기준금리 '+scoreValue('rate',watch.expected)+'</p>'+watchNumbers(watch)+'</section>':'');
 }
@@ -2181,11 +2294,11 @@ function scoreGoals(){
 }
 function scoreTrends(){
  const series=[
- ...['inflation','rate','growth','fx','debtStock'].map(k=>[k,game.path.map(s=>({month:s.month,[k]:s[k]}))]),
+ ...['inflation','rate','gdpForecast','fx','debtStock'].map(k=>[k,game.path.map(s=>({month:s.month,[k]:k==='gdpForecast'?derivedMacro(s).gdpForecast:s[k]}))]),
  ...['approval','trust'].map(k=>[k,[{month:0,[k]:k==='approval'?openingPolitics().approval:openingMarket.trust},...game.records.map(r=>({month:r.endMonth,[k]:k==='approval'?r.politics?.approval:r.market?.trust}))].filter(s=>Number.isFinite(s[k]))])
  ];
  const eventRows=game.records.map(r=>'<li>'+r.date+' 의결 '+scoreValue('rate',r.rate)+(r.incidents?.length?' · '+r.incidents.map(e=>String(e.start+1)+'월 '+(incidents[e.id]?.title??'공개 충격')).join(' · '):'')+'</li>').join('');
- return '<p>GDP 성장률 전망은 미산출입니다. 경기 흐름은 게임에서 소비·투자 등 경기 여건을 비교하는 내부 지표입니다. 사건과 의결 시점이 겹쳐도 인과관계로 단정할 수 없습니다.</p>'+series.map(([k,items])=>{
+ return '<p>실질 GDP 성장률 전망, GDP갭률, 경기동행지수 순환변동치는 통계청 및 한국은행 산식을 바탕으로 한 추정치입니다. 사건과 의결 시점이 겹쳐도 인과관계로 단정할 수 없습니다.</p>'+series.map(([k,items])=>{
  const ns=items.map(s=>s[k]), min=Math.min(...ns),max=Math.max(...ns), span=Math.max(1,game.state.month);
  const x=m=>12+376*m/span;
  const eventMarks=[...new Set(game.records.flatMap(r=>(r.incidents??[]).map(e=>e.start)))].map(month=>'<circle cx="'+x(month)+'" cy="17" r="4" fill="#a14f38"><title>'+String(month+1)+'월 공개 충격</title></circle>').join('');

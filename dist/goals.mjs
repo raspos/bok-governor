@@ -5,15 +5,17 @@ export const goalKeys=['inflation','growth','debt','stress'];
 export const policyMetrics=goalKeys;
 export const policyMoves=[-.25,0,.25];
 export const metricNotes={
- rate:'현재 적용되는 연 기준금리',inflation:'전년 동월 대비로 표현한 가상 상승률 · 물가지수 자체의 변동률과 구분',
- growth:'매월 갱신되는 경기 점수 · 경제 기초체력과 비교',capacity:'매월 갱신되는 경기 비교 기준 점수',
- fx:'월별 모형의 미 달러당 원화',stress:'매월 갱신되는 금융위험 점수 · 0~100, 높을수록 위험',
- debt:'가계신용 잔액의 증가세를 나타내는 연율 모형값',debtStock:'임기 시작 100 기준의 가계신용 잔액 지수',
- housing:'월별로 갱신하는 주택가격 상승세 모형값 · 별도 전월·전년 비율 계산 없음',
- expectations:'월별로 갱신하는 예상 물가상승률 · 고정 전망 기간 없음',
- loan:'모형상의 은행 연 대출금리',unemployment:'모형 월말 실업률 수준',fed:'모형상의 미국 연 정책금리',
- oil:'모형 월말 배럴당 브렌트유 가격',consumption:'월별 소비 흐름 점수',investment:'월별 투자 흐름 점수',
- imbalance:'매월 갱신하는 부채·주택 과열 점수 · 0~100, 높을수록 과열'
+ rate:'현재 적용되는 연 기준금리',inflation:'소비자물가 상승률(전년동월대비)',
+ growth:'실질 GDP 성장률 동학 변수',capacity:'잠재성장률 추정치',
+ gdpForecast:'연간 실질 GDP 성장률 전망치',gdpGap:'GDP갭률(잠재생산 대비 %)',
+ cci:'경기동행지수 순환변동치(기준=100)',
+ fx:'원/달러 환율',stress:'금융위험 지수(0~100, 높을수록 위험)',
+ debt:'가계신용 증가율(연율)',debtStock:'가계부채 잔액 지수(기준=100)',
+ housing:'주택가격 상승률',
+ expectations:'기대인플레이션율',
+ loan:'은행 대출금리',unemployment:'실업률',fed:'미국 연방기금 실효금리',
+ oil:'브렌트유 가격(달러)',consumption:'민간소비 증가율',investment:'설비투자 증가율',
+ imbalance:'부채·주택 과열 지수(0~100, 높을수록 과열)'
 };
 const decimals=k=>k==='stress'?1:2;
 const rounded=(k,n)=>Number(n.toFixed(decimals(k)));
@@ -26,9 +28,9 @@ export const goalPeriod=(turn,s)=>{
 export function goalOptions(s){
  return [
  {key:'inflation',name:s.inflation>=2.2?'물가상승률을 낮추기':'물가상승률을 2% 부근으로 유지',limit:s.inflation>=2.2?rounded('inflation',s.inflation-.2):2.2,min:s.inflation>=2.2?null:1.8},
- {key:'growth',name:'경기 흐름의 추가 하락을 막기',limit:null,min:rounded('growth',s.growth-.1)},
+ {key:'growth',name:'실질 GDP 성장률 하락 방어',limit:null,min:rounded('growth',s.growth-.1)},
  {key:'debt',name:s.debt>.3?'가계신용 증가세를 늦추기':'가계신용 증가율을 0.3% 이내로 유지',limit:s.debt>.3?rounded('debt',s.debt-.3):.3,min:null},
- {key:'stress',name:s.stress>=35?'금융위험 점수를 낮추기':'금융위험을 현재 수준 가까이 유지',limit:rounded('stress',s.stress+(s.stress>=35?-2:1)),min:null}
+ {key:'stress',name:s.stress>=35?'금융위험 완화':'금융위험을 현재 수준 가까이 유지',limit:rounded('stress',s.stress+(s.stress>=35?-2:1)),min:null}
  ];
 }
 export function chooseGoal(game,key){

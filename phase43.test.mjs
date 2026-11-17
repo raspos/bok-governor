@@ -17,7 +17,7 @@ test('announcement uses finalized rates, recorded votes and observed figures',()
  const game=jan(),r=game.pending;
  const o=openingStatement(r);
  assert.ok(o.rate.includes(r.rate.toFixed(2)+'%'));
- assert.match(o.economy,/경기 흐름 지표는 1.80점/);
+ assert.match(o.economy,/실질 GDP 성장률 전망/);
  assert.match(o.vote,/인상 \d표 · 동결 \d표 · 인하 \d표/);
  const fake={...r,change:0,rate:r.origin.rate,watch:{favorite:'raise',probabilities:{raise:86,hold:10,cut:4},expected:3.20}};
  const c=conferenceFor({...game,pending:fake});

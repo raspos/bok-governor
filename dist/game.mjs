@@ -1,4 +1,4 @@
-import {initial,tape,project,clamp,neutralRate,calm} from './economy.mjs';
+import {initial,tape,project,clamp,neutralRate,calm,derivedMacro} from './economy.mjs';
 import {dates} from './schedule.mjs';
 import {isRelease,memberDots,publishDots,pressQuestion,marketResponse,openingMarket,communicationLegacy} from './dots.mjs';
 import {activeIncidents,scenarioShocks,crisisResponses,dilemma,startScenarios,seededDraw} from './scenarios.mjs';
@@ -55,7 +55,13 @@ export function opinions(s,focus,proposal=0,forecast='보합',market=openingMark
  const persuasion=proposal*evidence>0?Math.sign(proposal)*Math.min(game.roster?.09:.18,Math.abs(evidence)*(plausible?.60:.30)):0;
  const judgment=score+persuasion;
  const risk=Object.keys(signals).sort((a,b)=>Math.abs(signals[b])-Math.abs(signals[a]))[0];
- const details={prices:'물가상승률 '+s.inflation.toFixed(2)+'%, 예상 물가상승률 '+s.expectations.toFixed(2)+'%',activity:'경기 흐름과 기초체력의 차이 '+(s.growth-s.capacity).toFixed(2)+'점',markets:'환율 '+Math.round(s.fx)+'원과 금융위험 '+Math.round(s.stress)+'점'};
+ const macro=derivedMacro(s,game.records?.at(-1)?.origin);
+ const activityText=macro.gdpRevision<0&&macro.gdpGap<0
+  ?'성장률 전망이 지난 회의보다 낮아졌습니다. GDP갭도 마이너스 폭이 커지고 있고요. 지금은 금리 인하를 검토할 필요가 있다고 봅니다.'
+  :macro.gdpGap>0
+  ?'성장률 전망이 '+macro.gdpForecast.toFixed(1)+'%로 견조하고 GDP갭률도 +'+macro.gdpGap.toFixed(1)+'%로 잠재생산을 웃돌아 수요측 물가 압력에 유의해야 합니다.'
+  :'실질 GDP 성장률 전망 '+macro.gdpForecast.toFixed(1)+'%, GDP갭률 '+macro.gdpGap.toFixed(1)+'% (경기동행지수 '+macro.cci.toFixed(1)+'p)';
+ const details={prices:'소비자물가 상승률 '+s.inflation.toFixed(2)+'%, 기대인플레이션 '+s.expectations.toFixed(2)+'%',activity:activityText,markets:'환율 '+Math.round(s.fx)+'원, 금융위험 '+Math.round(s.stress)+'/100'};
  const initial=score>raise?.25:score<cut?-.25:0;
  const vote=judgment>raise?.25:judgment<cut?-.25:0;
  const negotiated=game.context?.persuasion?.filter(a=>a.id===member.id&&a.proposal===proposal).at(-1);

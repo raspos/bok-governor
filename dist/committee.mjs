@@ -1,4 +1,4 @@
-import {clamp} from './economy.mjs';
+import {clamp,derivedMacro} from './economy.mjs';
 import {seededDraw} from './scenarios.mjs';
 import {researchEvidence} from './abilities.mjs';
 
@@ -70,8 +70,11 @@ export function persuasionCase(game,member,initialVote,proposal,method,follow){
  const justified=fit>=.46&&(follow==='crosscheck'||specialist);
  const trustBefore=game.memberTrust?.[member.id]??55;
  const outcome=changed?'근거가 기존 판단의 문턱을 넘어 한 단계 조정했습니다.':initialVote===proposal?'이미 같은 안을 지지했습니다.':fit<.32?'현재 지표가 제안한 방향을 뒷받침하지 않았습니다.':'근거가 위원의 반론을 뒤집기에 부족했습니다.';
+ const macro=derivedMacro(game.state);
  return {id:member.id,name:member.name,method,follow,proposal,initial:initialVote,final,changed,justified,fit,trustBefore,outcome,
- proof:(method==='model'?'물가 '+game.state.inflation.toFixed(2)+'%, 기대물가 '+game.state.expectations.toFixed(2)+'%':method==='stability'?'금융 위험 '+game.state.stress.toFixed(0)+'점, 부채·주택 과열 '+game.state.imbalance.toFixed(0)+'점':'경기 흐름 '+game.state.growth.toFixed(2)+'점, 은행 대출금리 '+game.state.loan.toFixed(2)+'%'),
+ proof:(method==='model'?'소비자물가 '+game.state.inflation.toFixed(2)+'%, 기대인플레이션 '+game.state.expectations.toFixed(2)+'%'
+  :method==='stability'?'금융위험 '+game.state.stress.toFixed(0)+'/100, 부채·주택 과열 '+game.state.imbalance.toFixed(0)+'/100'
+  :'성장률 전망 '+macro.gdpForecast.toFixed(1)+'% (GDP갭률 '+macro.gdpGap.toFixed(1)+'%), 대출금리 '+game.state.loan.toFixed(2)+'%'),
  objection:member.philosophy+' 관점에서 '+evidenceNames[member.evidence]+' 근거와 기존 정책의 부작용을 더 확인해야 합니다.'};
 }
 export function memberMemory(game,record,next){

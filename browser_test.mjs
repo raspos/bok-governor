@@ -84,6 +84,9 @@ try{
  await shot('background');
  await act('[data-action="background-'+(process.env.BOK_BACKGROUND??({320:'scholar',390:'official',768:'politician',1440:'scholar'})[width]??'scholar')+'"]');
  }
+ if(await page.locator('[data-action^="scenario-"]').count()){
+ await act('[data-action="scenario-standard"]');
+ }
  assert.equal(await page.locator('#inaugural-form input').count(),3);
  await shot('inaugural');
  await page.locator('#inaugural-form input[value="conditional"]').check();
@@ -95,11 +98,11 @@ try{
  await page.locator('#inaugural-form input[value="activity"]').check();
  await act('#inaugural-form button');
  assert.ok(await page.locator('.hud-more').isVisible());
- assert.match(await page.locator('.hud-more').innerText(),/GDP 성장률 전망/);
+ assert.match(await page.locator('.hud-more').innerText(),/성장률 전망/);
  await shot('office');
  if(width===1440){await page.keyboard.press('Escape');assert.ok(await page.locator('.pause-menu').isVisible());await act('.pause-menu [data-action="save"]');assert.match(await page.locator('.pause-status').innerText(),/저장했습니다/);await page.keyboard.press('Escape');await page.locator('.pause-menu').waitFor({state:'detached'});}
  await act('[data-action="scorecard"]');
- assert.match(await page.locator('.scorecard').innerText(),/GDP 성장률 전망은 산출하지/);
+ assert.match(await page.locator('.scorecard').innerText(),/실질 GDP 성장률/);
  await act('[data-score-tab="2"]');
  assert.equal(await page.locator('.score-trend svg').count(),7);
  if(width===390||width===1440)await page.locator('.scorecard').screenshot({path:fileURLToPath(new URL(width+'-scorecard.png',dir))});
