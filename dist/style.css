@@ -422,3 +422,12 @@ h1,.hero h1,.council-title h1,.title-copy .title-wordmark{font-family:var(--type
 .member-history{font-size:.82rem;margin:.4rem 0 .6rem}
 .persuasion-agreed{background:#15342a;border:1px solid #2e7a5b;color:#a7f2cb;padding:.65rem;border-radius:3px;margin:.65rem 0}
 
+.title-footer{margin-top:2.5rem;border-top:0;padding-top:0;font-size:.85rem;color:#b0a490}
+.title-footer a{color:#e6c488;text-decoration:underline;text-underline-offset:3px}
+.title-footer a:hover{color:#fff2d5}
+
+.site-footer{display:flex;justify-content:center;align-items:center;padding:1.5rem 0 .5rem;margin-top:2.5rem;border-top:1px solid #3c4856;font-size:.82rem;color:#9b8c75;text-align:center}
+.site-footer p{margin:0}
+.site-footer a{color:#b38c4d;text-decoration:underline;text-underline-offset:2px}
+.site-footer a:hover{color:#dfc494}
+

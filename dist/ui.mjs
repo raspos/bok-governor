@@ -621,14 +621,17 @@ function pauseGame(trigger){
  if(document.querySelector('dialog[open]'))return;
  showGameOverlay('일시정지','<h2>일시정지</h2><div class="pause-actions"><form method="dialog"><button class="primary">게임 계속하기</button></form>'+button('scorecard','경제 성적표',false)+'<button class="secondary" data-view="logs">정책 결정 기록</button><button class="secondary" data-view="watch">BOK워치</button><button class="secondary" data-view="dots">점도표 이력</button><button class="secondary" data-view="model">게임 방법</button>'+button('save','저장하기',false)+button('settings','설정',false)+button('home-title','타이틀 화면으로',false)+'</div><p class="pause-status" role="status"></p>',trigger,'pause-menu');
 }
+function siteFooter(){
+ return '<footer class="site-footer"><p>© <a href="https://raspos.github.io/databrew/" target="_blank" rel="noopener noreferrer">databrew</a>. All rights reserved.</p></footer>';
+}
 function titleScreen(){
- return '<section class="title-scene"><div class="title-copy"><p class="eyebrow">2027 · 통화정책 전략 시뮬레이션</p><h1 class="title-wordmark"><span class="title-korean" aria-label="한은 총재"><span>한은</span> <span>총재</span></span><small lang="en">Governor of the Bank of Korea</small></h1><p>금리는 당신이 결정한다.<br>그 대가는 경제가 치른다.</p><div class="title-actions">'+button('new-term','새 게임')+(savedTerm?button('resume-term','이어하기',false):'')+'<button class="secondary" data-view="model">게임 방법</button>'+button('settings','설정',false)+'</div></div></section>';
+ return '<section class="title-scene"><div class="title-copy"><p class="eyebrow">2027 · 통화정책 전략 시뮬레이션</p><h1 class="title-wordmark"><span class="title-korean" aria-label="한은 총재"><span>한은</span> <span>총재</span></span><small lang="en">Governor of the Bank of Korea</small></h1><p>금리는 당신이 결정한다.<br>그 대가는 경제가 치른다.</p><div class="title-actions">'+button('new-term','새 게임')+(savedTerm?button('resume-term','이어하기',false):'')+'<button class="secondary" data-view="model">게임 방법</button>'+button('settings','설정',false)+'</div><footer class="title-footer"><p>© <a href="https://raspos.github.io/databrew/" target="_blank" rel="noopener noreferrer">databrew</a>. All rights reserved.</p></footer></div></section>';
 }
 function render(focusMain=false){
  const scenes={setup:setupScreen,scenario:scenarioScreen,inaugural:inauguralScreen,office,crisis:crisisScreen,government:governmentScreen,meeting,review:reviewScreen,dots:dotsEntry,press:pressScreen,result,newspaper:newspaperScreen,end:ending};
  const playing=!titleOpen&&game.phase!=='setup'&&game.phase!=='scenario';
  const step=playing&&game.turn<dates.length?'<p class="game-step">'+(game.turn+1)+' / 8차 회의</p>':'';
- main.innerHTML=titleOpen?titleScreen():step+(saveMessage?'<p role="status">'+saveMessage+'</p>':'')+scenes[game.phase]();
+ main.innerHTML=titleOpen?titleScreen():step+(saveMessage?'<p role="status">'+saveMessage+'</p>':'')+scenes[game.phase]()+siteFooter();
  if(dock)dock.innerHTML=playing?economicHud()+button('pause','메뉴',false):'';
  if(focusMain)main.focus();
 }
