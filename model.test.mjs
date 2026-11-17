@@ -108,6 +108,8 @@ test('offline game renders and handles eight meetings and reassessment through U
  click('new-term');
  assert.match(main.innerHTML,/어떤 총재로 시작할 것인가/);
  click('background-scholar');
+ assert.match(main.innerHTML,/어떤 경제 상황에서 출발할 것인가/);
+ click('scenario-standard');
  assert.match(main.innerHTML,/신년 기자간담회/);
  for(const choice of ['conditional','prices','activity'])submit('inaugural-form','answer',choice);
  assert.match(main.innerHTML,/총재 집무실/);

@@ -382,3 +382,16 @@ h1,.hero h1,.council-title h1,.title-copy .title-wordmark{font-family:var(--type
  #game-dock .hud-more{gap:.22rem .55rem;font-size:.69rem}
  #game-dock .hud-more>span{display:inline-flex;gap:.2em}
 }
+
+.scenario-panel{margin:16px 0}
+.scenario-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:16px;margin:20px 0}
+.scenario-card{border:1px solid var(--line);background:#faf6ed;padding:18px;display:flex;flex-direction:column;justify-content:space-between;border-radius:2px}
+.scenario-card h2{margin:0;font-size:1.22rem;font-family:var(--type-title,Georgia,serif)}
+.scenario-card.recommended-card{border:2px solid var(--gold);background:#fefbf2}
+.scenario-subtitle{color:#73582e;font-size:0.95rem;margin:4px 0 10px}
+.scenario-metrics-preview{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.scenario-metrics-preview span{background:#eee6d4;border:1px solid #dcd1be;padding:3px 7px;font-size:0.82rem;font-family:var(--type-number,monospace);border-radius:2px}
+.scenario-dilemma{margin:10px 0;font-size:0.95rem;line-height:1.45;color:var(--navy)}
+.scenario-badge{background:var(--gold);color:#101c2b;font-weight:700;padding:2px 8px;font-size:0.75rem;border-radius:2px}
+.scenario-random-card{border:2px dashed #938673;background:#f5f0e4}
+

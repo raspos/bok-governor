@@ -383,6 +383,19 @@ h1,.hero h1,.council-title h1,.title-copy .title-wordmark{font-family:var(--type
  #game-dock .hud-more{gap:.22rem .55rem;font-size:.69rem}
  #game-dock .hud-more>span{display:inline-flex;gap:.2em}
 }
+
+.scenario-panel{margin:16px 0}
+.scenario-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:16px;margin:20px 0}
+.scenario-card{border:1px solid var(--line);background:#faf6ed;padding:18px;display:flex;flex-direction:column;justify-content:space-between;border-radius:2px}
+.scenario-card h2{margin:0;font-size:1.22rem;font-family:var(--type-title,Georgia,serif)}
+.scenario-card.recommended-card{border:2px solid var(--gold);background:#fefbf2}
+.scenario-subtitle{color:#73582e;font-size:0.95rem;margin:4px 0 10px}
+.scenario-metrics-preview{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.scenario-metrics-preview span{background:#eee6d4;border:1px solid #dcd1be;padding:3px 7px;font-size:0.82rem;font-family:var(--type-number,monospace);border-radius:2px}
+.scenario-dilemma{margin:10px 0;font-size:0.95rem;line-height:1.45;color:var(--navy)}
+.scenario-badge{background:var(--gold);color:#101c2b;font-weight:700;padding:2px 8px;font-size:0.75rem;border-radius:2px}
+.scenario-random-card{border:2px dashed #938673;background:#f5f0e4}
+
 </style></head>
 <body><div id="game"><main id="main" tabindex="-1"></main><div id="game-dock"></div></div><script>const dates=['2027-01-14','2027-02-25','2027-04-09','2027-05-27','2027-07-15','2027-08-26','2027-10-15','2027-11-25'];
 const scheduleSource='https://www.bok.or.kr/portal/bbs/B0000502/view.do?menuNo=201263&nttId=11066075';
@@ -660,6 +673,105 @@ function communicationLegacy(records,market){
 }
 
 
+
+
+const startScenarios={
+ standard:{
+  id:'standard',
+  name:'기본 시나리오',
+  subtitle:'물가 2.8% · 경기 1.8점',
+  dilemma:'물가 안정과 경기 둔화의 균형 · 중립 기조를 모색할까',
+  desc:'기준금리 3.00%, 물가상승률 2.80%, 경기 흐름 1.80점. 물가 안정과 경기 둔화의 갈림길에서 통화정책을 시작합니다.',
+  recommended:true,
+  state:{...initial},
+  market:{...openingMarket}
+ },
+ inflation:{
+  id:'inflation',
+  name:'① 물가와의 전쟁',
+  subtitle:'물가 3%대 · 성장 둔화',
+  dilemma:'물가 3%대와 성장 둔화 · 금리를 더 올려야 하나',
+  desc:'물가상승률 3.70%, 기대물가 3.20%. 고물가가 고착될 위험 속에 경기는 둔화되고 있습니다.',
+  state:{month:0,rate:3.25,fed:4.00,inflation:3.7,growth:1.3,fx:1460,stress:35,unemployment:3.2,debt:3.8,housing:1.2,loan:4.90,oil:85,consumption:1.3,investment:1.4,debtStock:100,imbalance:38,expectations:3.2,capacity:1.8,gaps:[.75,.75,.75]},
+  market:{...openingMarket,expected:3.40,yield:3.48},
+  inauguralQ3:{
+   question:'총재님, 소비자물가 상승률이 3%대 후반까지 오르며 서민 물가 부담이 극심합니다. 당장 가장 걱정하시는 위험 요인은 무엇입니까?',
+   choices:[
+    {id:'prices',label:'고물가 고착화',text:s=>'물가상승률이 '+s.inflation.toFixed(2)+'%에 달하고 기대물가도 '+s.expectations.toFixed(2)+'%입니다. 임금과 물가의 연쇄 상승을 차단하는 것이 최우선입니다.'},
+    {id:'activity',label:'내수 급랭 위험',text:s=>'물가를 잡기 위한 긴축 기조 속에서 가계 소비와 기업 투자가 과도하게 얼어붙지 않는지 면밀히 점검하고 있습니다.'},
+    {id:'markets',label:'차주 이자 부담',text:s=>'대출금리가 '+s.loan.toFixed(2)+'%까지 오르며 취약계층의 원리금 상환 부담이 가중되는 점을 우려하고 있습니다.'}
+   ]
+  }
+ },
+ stagnation:{
+  id:'stagnation',
+  name:'② 침체의 그림자',
+  subtitle:'물가 안정 · 소비·투자 부진',
+  dilemma:'물가 안정과 소비·투자 부진 · 금리를 내려 경기를 살릴까',
+  desc:'물가상승률 1.40%, 경기 흐름 0.80점. 물가는 목표를 밑돌고 소비와 투자가 동반 위축되고 있습니다.',
+  state:{month:0,rate:2.75,fed:3.50,inflation:1.4,growth:0.8,fx:1410,stress:30,unemployment:3.8,debt:2.2,housing:-0.5,loan:4.25,oil:68,consumption:0.9,investment:0.9,debtStock:100,imbalance:34,expectations:1.6,capacity:1.8,gaps:[.25,.25,.25]},
+  market:{...openingMarket,expected:2.50,yield:2.55},
+  inauguralQ3:{
+   question:'총재님, 물가는 안정됐지만 소비와 설비투자가 동시에 얼어붙으며 경기 침체 우려가 팽배합니다. 지금 경제에서 가장 우려하시는 부분은 무엇입니까?',
+   choices:[
+    {id:'activity',label:'내수 침체 장기화',text:s=>'경기 흐름 점수가 '+s.growth.toFixed(2)+'점으로 크게 떨어졌습니다. 소비와 투자의 동반 위축이 고착화되는 것을 가장 경계합니다.'},
+    {id:'prices',label:'디플레이션 압력',text:s=>'물가상승률이 '+s.inflation.toFixed(2)+'%로 목표인 2%를 밑돌고 있습니다. 저물가-저성장의 덫에 빠지지 않도록 유의해야 합니다.'},
+    {id:'markets',label:'고용 악화와 실업',text:s=>'실업률이 '+s.unemployment.toFixed(2)+'%로 올라서고 있습니다. 일자리 위축이 가계 소득 감소로 이어지는 악순환을 차단해야 합니다.'}
+   ]
+  }
+ },
+ fx:{
+  id:'fx',
+  name:'③ 흔들리는 원화',
+  subtitle:'환율 급등 · 수입물가 불안',
+  dilemma:'환율 급등과 수입물가 불안 · 경기보다 환율과 물가를 우선할까',
+  desc:'원/달러 환율 1,530원, 미 연준 고금리 유지. 환율 급등이 수입물가를 거세게 압박합니다.',
+  state:{month:0,rate:3,fed:4.25,inflation:3.3,growth:1.5,fx:1530,stress:42,unemployment:3.2,debt:4.0,housing:1.5,loan:4.75,oil:86,consumption:1.4,investment:1.6,debtStock:100,imbalance:40,expectations:2.9,capacity:1.9,gaps:[.5,.5,.5]},
+  market:{...openingMarket,expected:3.15,yield:3.22},
+  inauguralQ3:{
+   question:'총재님, 원화값이 급격히 떨어지면서 물가 불안도 커지고 있는데요. 지금 한국 경제에서 가장 걱정하시는 부분은 무엇입니까?',
+   choices:[
+    {id:'markets',label:'외환시장 변동성',text:s=>'원/달러 환율이 '+Math.round(s.fx)+'원대까지 치솟았습니다. 외환시장의 쏠림 현상과 대외 신인도 악영향을 면밀히 주시하고 있습니다.'},
+    {id:'prices',label:'수입물가 전이',text:s=>'환율 상승으로 원유와 원자재 수입단가가 급등해 국내 소비자물가로 전이되는 2차 파급효과를 크게 우려합니다.'},
+    {id:'activity',label:'기업 조달비용 상승',text:s=>'외화 차입 여건 악화와 금융위험 '+Math.round(s.stress)+'점이 기업들의 자금 조달에 부담을 주는 상황입니다.'}
+   ]
+  }
+ },
+ debt:{
+  id:'debt',
+  name:'④ 빚의 경고',
+  subtitle:'가계부채 증가 · 금융시장 불안',
+  dilemma:'가계부채 증가와 금융시장 불안 · 금리와 금융안정 대응을 어떻게 조합할까',
+  desc:'가계신용 증가율 7.20%, 부동산 과열. 부채 누적과 금융불균형이 심각한 경고음을 냅니다.',
+  state:{month:0,rate:3,fed:3.88,inflation:2.4,growth:1.9,fx:1430,stress:48,unemployment:3.0,debt:7.2,housing:4.5,loan:4.65,oil:75,consumption:2.1,investment:2.0,debtStock:108,imbalance:58,expectations:2.4,capacity:1.9,gaps:[.5,.5,.5]},
+  market:{...openingMarket,expected:3.10,yield:3.15},
+  inauguralQ3:{
+   question:'총재님, 가계대출 증가율이 7%를 넘고 부동산 과열 경고가 잇따르고 있습니다. 금융안정 측면에서 가장 경계하시는 것은 무엇입니까?',
+   choices:[
+    {id:'markets',label:'금융불균형 누적',text:s=>'가계신용 증가율이 연율 '+s.debt.toFixed(2)+'%, 부채·주택 과열 지수가 '+Math.round(s.imbalance)+'점에 달합니다. 자산 가격 거품과 부채 누증을 선제적으로 억제해야 합니다.'},
+    {id:'activity',label:'원리금 상환 부담',text:s=>'누적된 가계부채가 향후 금리 변동 시 소비 위축과 금융기관 건전성 악화로 이어질 잠재적 뇌관이 되고 있습니다.'},
+    {id:'prices',label:'자산발 유동성 압력',text:s=>'시장에 풀린 풍부한 유동성이 부동산 등 자산시장으로 쏠리며 물가 안정 기반을 위협하는 상황을 경계합니다.'}
+   ]
+  }
+ },
+ chips:{
+  id:'chips',
+  name:'⑤ 반도체의 역설',
+  subtitle:'수출·투자 호황 · 내수 부진',
+  dilemma:'수출·투자 호황과 내수 부진 · 호황을 믿고 긴축할 수 있을까',
+  desc:'반도체 호황으로 투자 3.40점 견조, 그러나 소비 1.10점으로 내수는 극심한 부진에 빠져 있습니다.',
+  state:{month:0,rate:3,fed:3.88,inflation:2.6,growth:2.6,fx:1400,stress:28,unemployment:3.3,debt:4.2,housing:1.8,loan:4.60,oil:73,consumption:1.1,investment:3.4,debtStock:100,imbalance:39,expectations:2.4,capacity:2.1,gaps:[.5,.5,.5]},
+  market:{...openingMarket,expected:2.95,yield:3.00},
+  inauguralQ3:{
+   question:'총재님, 반도체 등 수출은 사상 최대 호황이지만 골목상권과 내수는 꽁꽁 얼어붙어 양극화가 극심합니다. 이 엇갈린 신호 속에서 무엇을 가장 걱정하십니까?',
+   choices:[
+    {id:'activity',label:'내수·소비 양극화',text:s=>'설비투자는 '+s.investment.toFixed(2)+'점으로 호황이지만 소비 흐름은 '+s.consumption.toFixed(2)+'점에 그치고 있습니다. 수출 온기가 내수로 퍼지지 않는 괴리를 가장 걱정합니다.'},
+    {id:'prices',label:'착시로 인한 실기',text:s=>'외형 성장 점수 '+s.growth.toFixed(2)+'점이라는 착시에 가려져 체감 경기와 서민 생활의 고통을 놓치는 정책적 실수를 경계합니다.'},
+    {id:'markets',label:'단일 품목 의존성',text:s=>'반도체 단일 사이클에 경제가 좌우되는 만큼, 호황 이후 닥쳐올 수 있는 대외 충격에 대비한 정책 여력을 비축해야 합니다.'}
+   ]
+  }
+ }
+};
 
 const incidents={
  war:{title:'중동 분쟁으로 해상 운송 차질',why:'원유 공급과 운송 여건이 악화됐습니다.',duration:3,base:.13,impact:{oil:11,world:-.17,risk:2}},
@@ -1148,10 +1260,23 @@ const pressReporter=item=>outlets[item.tag];
 
 
 
-function inauguralQuestions(state){
+function inauguralQuestions(state, scenarioId='standard'){
  const number=n=>n.toFixed(2);
  const inflation=number(state.inflation);
  const inflationReading=state.inflation>2?'물가상승률이 '+inflation+'%로 아직 목표보다 높습니다.':'물가상승률은 '+inflation+'%입니다. 지금 수치만으로 물가 위험이 사라졌다고 보긴 어렵습니다.';
+ const scenario=startScenarios[scenarioId];
+ const customQ3=scenarioId!=='standard'&&scenario?.inauguralQ3;
+ const q3Question=customQ3?customQ3.question:'마지막으로 하나만 더 여쭐게요. 지금 한국 경제를 어떻게 보고 계십니까? 당장 가장 걱정되는 게 뭡니까?';
+ const q3Choices=customQ3?customQ3.choices.map(c=>({
+  id:c.id,
+  label:c.label,
+  text:typeof c.text==='function'?c.text(state):c.text
+ })):[
+  {id:'prices',label:'물가 위험',text:inflationReading+' 앞으로 물가가 다시 오를 가능성은 계속 봐야 합니다.'},
+  {id:'activity',label:'경기 둔화',text:'가계 대출금리가 '+number(state.loan)+'%입니다. 이자 부담 속에서도 소비가 버틸지, 기업이 투자를 이어갈 수 있을지 보고 있습니다.'},
+  {id:'markets',label:'금융시장 불안',text:'가계신용 증가율은 연율 '+number(state.debt)+'%입니다. 지금 그 숫자 하나로 위기를 말할 수는 없지만, 빚이 쌓이는 속도와 시장의 자금 사정을 같이 봐야 합니다.'}
+ ];
+
  return [
  {id:'stance',reporter:'통화정책 출입기자',question:'총재님, 취임 축하드립니다. 해외에서는 총재님을 매파라고 보는 시각이 있는데요. 물가를 잡으려면 금리를 높은 수준에 두는 게 맞다고 보십니까?',choices:[
  {id:'prices',label:'물가안정에 무게',text:'지금은 물가를 안정시키는 게 중요하다고 봅니다. 물가가 제대로 잡히지 않으면 금리를 내리기도 어렵습니다.',tone:1},
@@ -1163,22 +1288,18 @@ function inauguralQuestions(state){
  {id:'markets',label:'금융안정',text:'올해는 금융안정을 특히 눈여겨보겠습니다. 가계 빚이 늘거나 돈이 제때 돌지 않으면 그 영향이 경제 전체로 번질 수 있습니다.'},
  {id:'activity',label:'성장',text:'올해는 경기 회복에 특히 신경을 쓰겠습니다. 소비와 투자가 살아날 여건이 되는지 먼저 보려고 합니다.'}
  ]},
- {id:'diagnosis',reporter:'경제부 기자',question:'마지막으로 하나만 더 여쭐게요. 지금 한국 경제를 어떻게 보고 계십니까? 당장 가장 걱정되는 게 뭡니까?',choices:[
- {id:'prices',label:'물가 위험',text:inflationReading+' 앞으로 물가가 다시 오를 가능성은 계속 봐야 합니다.'},
- {id:'activity',label:'경기 둔화',text:'가계 대출금리가 '+number(state.loan)+'%입니다. 이자 부담 속에서도 소비가 버틸지, 기업이 투자를 이어갈 수 있을지 보고 있습니다.'},
- {id:'markets',label:'금융시장 불안',text:'가계신용 증가율은 연율 '+number(state.debt)+'%입니다. 지금 그 숫자 하나로 위기를 말할 수는 없지만, 빚이 쌓이는 속도와 시장의 자금 사정을 같이 봐야 합니다.'}
- ]}
+ {id:'diagnosis',reporter:'경제부 기자',question:q3Question,choices:q3Choices}
  ];
 }
 
 function startInaugural(game){
- return {...game,phase:'inaugural',inaugural:{date:'2027-01-01',rate:game.state.rate,indicators:{...game.state},answers:[]}};
+ return {...game,phase:'inaugural',inaugural:{date:'2027-01-01',rate:game.state.rate,indicators:{...game.state},scenario:game.scenario??'standard',answers:[]}};
 }
 
 function answerInaugural(game,id){
  if(game.phase!=='inaugural')throw Error('Inaugural conference is closed');
  const record=game.inaugural;
- const question=inauguralQuestions(record.indicators)[record.answers.length];
+ const question=inauguralQuestions(record.indicators,record.scenario??game.scenario??'standard')[record.answers.length];
  const choice=question.choices.find(item=>item.id===id);
  if(!choice)throw Error('Invalid inaugural answer');
  const answers=[...record.answers,{...choice,topic:question.id,question:question.question,reporter:question.reporter}];
@@ -1283,9 +1404,14 @@ const moves=[-.25,0,.25];
 const label=d=>d>0?'0.25%p 인상':d<0?'0.25%p 인하':'동결';
 const legacyKeys=['debtStock','imbalance','expectations','capacity'];
 const meetingMonths=dates.map(date=>Number(date.slice(5,7)));
-function start(seed,background){
+function start(seed,background,scenarioId='standard'){
  if(background&&!Object.hasOwn(backgrounds,background))throw Error('Invalid background');
- return {seed:seed>>>0,turn:0,phase:'office',state:{...initial},path:[{...initial}],records:[],market:{...openingMarket},politics:openingPolitics(),
+ const pool=['standard','inflation','stagnation','fx','debt','chips'];
+ const id=scenarioId==='random'?pool[Math.floor(seededDraw(seed,0,7719)*pool.length)]:scenarioId;
+ const chosen=startScenarios[id]??startScenarios.standard;
+ const st={...chosen.state};
+ const mkt={...chosen.market};
+ return {seed:seed>>>0,scenario:chosen.id,turn:0,phase:'office',state:st,path:[{...st}],records:[],market:mkt,politics:openingPolitics(),
  ...(background?{background,roster:selectRoster(seed),memberTrust:{}}:{})};
 }
 function briefing(game){
@@ -1533,12 +1659,12 @@ const key='bok-governor-v2';
 let game;
 try {
  const saved=JSON.parse(localStorage.getItem(key));
- if(saved?.state && ['setup','inaugural','office','crisis','government','meeting','review','dots','press','result','newspaper','end'].includes(saved.phase) && Array.isArray(saved.records) && Array.isArray(saved.path))game=saved;
+ if(saved?.state && ['setup','scenario','inaugural','office','crisis','government','meeting','review','dots','press','result','newspaper','end'].includes(saved.phase) && Array.isArray(saved.records) && Array.isArray(saved.path))game=saved;
 } catch {}
 const newGame=()=>({...start(crypto.getRandomValues(new Uint32Array(1))[0]),phase:'setup'});
 game??=newGame();
-let titleOpen=game.phase==='setup'||globalThis.performance?.getEntriesByType?.('navigation')[0]?.type==='navigate';
-let savedTerm=game.phase==='setup'?null:game;
+let titleOpen=game.phase==='setup'||game.phase==='scenario'||globalThis.performance?.getEntriesByType?.('navigation')[0]?.type==='navigate';
+let savedTerm=(game.phase==='setup'||game.phase==='scenario')?null:game;
 try{document.documentElement?.classList.toggle('reduce-motion',localStorage.getItem('bok-reduce-motion')==='1');}catch{}
 let selectedMember=null,argumentMethod=null,meetingStep=game.context?.uiStep??0;
 const alternativeTo=change=>moves.find(d=>d!==change);
@@ -1549,7 +1675,7 @@ const radio=(name,items,current)=>'<div class="choice">'+items.map(([v,t])=>'<la
 const button=(action,title,primary=true)=>'<button class="'+(primary?'primary':'secondary')+'" data-action="'+action+'">'+title+'</button>';
 function commit(next){
  game=next;
- if(next.phase!=='setup')savedTerm=next;
+ if(next.phase!=='setup'&&next.phase!=='scenario')savedTerm=next;
  if(game.phase==='result'&&alternative===game.records.at(-1).change)alternative=alternativeTo(game.records.at(-1).change);
  try{localStorage.setItem(key,JSON.stringify(next));saveMessage='';}catch{saveMessage='브라우저 저장을 사용할 수 없습니다. 이 탭에서 플레이를 계속할 수 있습니다.';}
  render(true);
@@ -1736,7 +1862,7 @@ function pressTranscript(c){
 }
 
 function inauguralScreen(){
- const r=game.inaugural, n=r.answers.length, q=inauguralQuestions(r.indicators)[n];
+ const r=game.inaugural, n=r.answers.length, q=inauguralQuestions(r.indicators, r.scenario??game.scenario??'standard')[n];
  return '<section class="panel inaugural"><div class="eyebrow">2027년 1월 · 게임 속 가상 기자간담회</div><h1>한국은행 총재 신년 기자간담회</h1><figure class="press-stage"><div class="scene scene-press" aria-hidden="true"></div><figcaption>'+backgrounds[game.background].name+' 출신 신임 총재</figcaption></figure><section class="press-question"><div class="eyebrow">질문 '+(n+1)+' / 3</div><h2>'+q.reporter+'</h2>'+
  (n===0?'<p class="muted">매파는 물가를 잡기 위해 금리를 높게 유지하는 데, 비둘기파는 경기 여건을 고려해 금리를 낮추는 데 상대적으로 적극적인 입장입니다.</p>':'<p class="muted">말씀 감사합니다. '+(n===1?'올해 중점 현안도 여쭙겠습니다.':'마지막으로 경기 진단을 여쭙겠습니다.')+'</p>')+'<p>'+q.question+'</p>'+
  (n===1?'<p class="muted">올해 중점과 별도로, 한국은행의 통화정책은 물가안정을 우선합니다.</p>':'')+
@@ -1789,7 +1915,39 @@ function communicationEnding(e){
  return '<section class="panel dot-panel"><h2>'+e.title+'</h2><p>총재 전망 중앙값 기준 · 현행 금리보다 높은 발표 '+e.above+'회 · 낮은 발표 '+e.below+'회 · 여건을 설명한 전망 수정 '+e.flexible+'회</p><p>2027년 말 정책 신뢰 '+e.trust+'/100 · 발표 직후 예상금리 평균 변동 '+e.volatility.toFixed(2)+'%p · 근거가 부족한 상충 신호 '+e.unexplained+'회</p><p class="muted">2029년 재평가에 남긴 소통 기록입니다. 이후의 모형 금리는 후임 정책 가정에 따릅니다.</p></section>';
 }
 function setupScreen(){
- return '<section class="panel"><div class="eyebrow">2027년 임명</div><h1>어떤 총재로 시작할 것인가</h1><p>당신은 한국은행 총재입니다. 2027년 여덟 차례 금통위에서 물가, 경기, 금융안정 사이에서 판단해야 합니다. 기준금리는 위원회가 표결로 결정합니다.</p><p>위원에게 근거를 제시하고 정부 요구에 대응하세요. 결정의 결과는 중앙일보 1면과 2029년 역사적 평가에 남습니다.</p><div class="backgrounds">'+Object.entries(backgrounds).map(([id,b],i)=>'<article>'+memberPortrait(12+i)+'<h2>'+b.name+'</h2><p>'+b.focus+'</p><p class="muted">'+b.argument+'</p>'+button('background-'+id,'이 출신으로 시작')+'</article>').join('')+'</div></section>';
+ return '<section class="panel"><div class="eyebrow">2027년 임명</div><h1>어떤 총재로 시작할 것인가</h1><p>당신은 한국은행 총재입니다. 2027년 여덟 차례 금통위에서 물가, 경기, 금융안정 사이에서 판단해야 합니다. 기준금리는 위원회가 표결로 결정합니다.</p><p>위원에게 근거를 제시하고 정부 요구에 대응하세요. 결정의 결과는 중앙일보 1면과 2029년 역사적 평가에 남습니다.</p><div class="backgrounds">'+Object.entries(backgrounds).map(([id,b],i)=>'<article>'+memberPortrait(12+i)+'<h2>'+b.name+'</h2><p>'+b.focus+'</p><p class="muted">'+b.argument+'</p>'+button('background-'+id,'이 출신으로 선택')+'</article>').join('')+'</div></section>';
+}
+function scenarioScreen(){
+ const bg=backgrounds[game.background]??backgrounds.scholar;
+ const cards=Object.values(startScenarios).map(sc=>{
+  const s=sc.state;
+  const badge=sc.recommended?'<span class="badge scenario-badge">추천 · 균형</span>':'';
+  return '<article class="scenario-card'+(sc.recommended?' recommended-card':'')+'">'+
+  '<div class="row"><h2>'+sc.name+'</h2>'+badge+'</div>'+
+  '<p class="scenario-subtitle"><strong>'+sc.subtitle+'</strong></p>'+
+  '<div class="scenario-metrics-preview">'+
+   '<span>물가 '+value('inflation',s.inflation)+'</span>'+
+   '<span>경기 '+value('growth',s.growth)+'</span>'+
+   '<span>환율 '+Math.round(s.fx).toLocaleString('ko-KR')+'원</span>'+
+   '<span>위험 '+Math.round(s.stress)+'점</span>'+
+  '</div>'+
+  '<p class="scenario-dilemma"><strong>핵심 고민:</strong> '+sc.dilemma+'</p>'+
+  '<p class="muted">'+sc.desc+'</p>'+
+  button('scenario-'+sc.id,'이 환경으로 임기 시작')+'</article>';
+ }).join('');
+
+ const randomCard='<article class="scenario-card scenario-random-card">'+
+ '<div class="row"><h2>🎲 무작위 시나리오</h2><span class="badge">도전</span></div>'+
+ '<p class="scenario-subtitle"><strong>무작위 경제 여건에서 시작</strong></p>'+
+ '<p>기본 및 5개 경제 시나리오 중 하나가 무작위로 배정됩니다. 첫 회의까지 어떤 상황인지 예측할 수 없습니다.</p>'+
+ button('scenario-random','무작위로 시작',false)+'</article>';
+
+ return '<section class="panel scenario-panel"><div class="eyebrow">2027년 대한민국 경제 여건 선택</div>'+
+ '<h1>어떤 경제 상황에서 출발할 것인가</h1>'+
+ '<p>선택한 총재: <strong>'+bg.name+'</strong> ('+bg.focus+')</p>'+
+ '<p>경제 환경에 따라 <strong>초기 경제지표, 시장 전망(BOK워치), 위원들의 판단과 취임 기자회견 쟁점</strong>이 달라집니다.</p>'+
+ '<div class="scenario-grid">'+cards+randomCard+'</div>'+
+ '<div class="stage-actions">'+button('back-setup','← 총재 출신 다시 선택',false)+'</div></section>';
 }
 function riskBrief(g=game){
  const b=briefing(g),last=g.records.at(-1);
@@ -1965,7 +2123,7 @@ function scoreChange(k,from,to){
  return delta===0?'→ 보합':(delta>0?'↑ ':'↓ ')+Math.abs(delta).toFixed(2)+unit;
 }
 function economicHud(){
- if(game.phase==='setup')return '';
+ if(game.phase==='setup'||game.phase==='scenario')return '';
  const [,prev,now]=scoreSnapshots();
  const observed=game.state.month?new Date(Date.UTC(2027,game.state.month,0)).toISOString().slice(0,10):'2027-01-01';
  const item=k=>'<span><small>'+(metrics[k]?.[0]??scoreLabels[k])+'</small> <strong>'+scoreValue(k,now[k])+'</strong><small> '+scoreChange(k,prev[k],now[k])+'</small></span>';
@@ -2041,8 +2199,8 @@ function titleScreen(){
  return '<section class="title-scene"><div class="title-copy"><p class="eyebrow">2027 · 통화정책 전략 시뮬레이션</p><h1 class="title-wordmark"><span class="title-korean" aria-label="한은 총재"><span>한은</span> <span>총재</span></span><small lang="en">Governor of the Bank of Korea</small></h1><p>금리는 당신이 결정한다.<br>그 대가는 경제가 치른다.</p><div class="title-actions">'+button('new-term','새 게임')+(savedTerm?button('resume-term','이어하기',false):'')+'<button class="secondary" data-view="model">게임 방법</button>'+button('settings','설정',false)+'</div></div></section>';
 }
 function render(focusMain=false){
- const scenes={setup:setupScreen,inaugural:inauguralScreen,office,crisis:crisisScreen,government:governmentScreen,meeting,review:reviewScreen,dots:dotsEntry,press:pressScreen,result,newspaper:newspaperScreen,end:ending};
- const playing=!titleOpen&&game.phase!=='setup';
+ const scenes={setup:setupScreen,scenario:scenarioScreen,inaugural:inauguralScreen,office,crisis:crisisScreen,government:governmentScreen,meeting,review:reviewScreen,dots:dotsEntry,press:pressScreen,result,newspaper:newspaperScreen,end:ending};
+ const playing=!titleOpen&&game.phase!=='setup'&&game.phase!=='scenario';
  const step=playing&&game.turn<dates.length?'<p class="game-step">'+(game.turn+1)+' / 8차 회의</p>':'';
  main.innerHTML=titleOpen?titleScreen():step+(saveMessage?'<p role="status">'+saveMessage+'</p>':'')+scenes[game.phase]();
  if(dock)dock.innerHTML=playing?economicHud()+button('pause','메뉴',false):'';
@@ -2077,7 +2235,15 @@ document.addEventListener('click',e=>{
  selectedMember=null;argumentMethod=null;titleOpen=false;render(true);return;
  }
  if(action==='new-term'){game=newGame();titleOpen=false;render(true);return;}
- if(action.startsWith('background-')){commit(startInaugural(start(game.seed,action.slice(11))));return;}
+ if(action.startsWith('background-')){commit({...game,background:action.slice(11),phase:'scenario'});return;}
+ if(action==='back-setup'){commit({...game,phase:'setup'});return;}
+ if(action.startsWith('scenario-')){
+  const scId=action.slice(9);
+  const bg=game.background??'scholar';
+  const started=start(game.seed,bg,scId);
+  commit(startInaugural(started));
+  return;
+ }
  if(action.startsWith('step-')){
  meetingStep=Number(action.slice(5));selectedMember=null;argumentMethod=null;
  commit({...game,context:{...game.context,uiStep:meetingStep}});return;
@@ -2094,8 +2260,8 @@ document.addEventListener('click',e=>{
  }
 });
 document.addEventListener('keydown',e=>{
- if(e.key==='Escape'&&!titleOpen&&game.phase!=='setup'&&!document.querySelector('dialog[open]')){e.preventDefault();pauseGame(document.activeElement);return;}
- if(e.altKey&&e.code==='KeyE'&&!titleOpen&&game.phase!=='setup'){
+ if(e.key==='Escape'&&!titleOpen&&game.phase!=='setup'&&game.phase!=='scenario'&&!document.querySelector('dialog[open]')){e.preventDefault();pauseGame(document.activeElement);return;}
+ if(e.altKey&&e.code==='KeyE'&&!titleOpen&&game.phase!=='setup'&&game.phase!=='scenario'){
  e.preventDefault();showScorecard(document.activeElement);
  }
 });

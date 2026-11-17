@@ -1,7 +1,7 @@
 import {initial,tape,project,clamp,neutralRate,calm} from './economy.mjs';
 import {dates} from './schedule.mjs';
 import {isRelease,memberDots,publishDots,pressQuestion,marketResponse,openingMarket,communicationLegacy} from './dots.mjs';
-import {activeIncidents,scenarioShocks,crisisResponses,dilemma} from './scenarios.mjs';
+import {activeIncidents,scenarioShocks,crisisResponses,dilemma,startScenarios,seededDraw} from './scenarios.mjs';
 import {openingPolitics,governmentEvent,governmentReply,requestsReview,reconsider,updatePolitics} from './politics.mjs';
 import {backgrounds,getCommittee,selectRoster,persuasionCase,memberMemory,voteRunoff,evidenceNames} from './committee.mjs';
 import {policyPressure} from './committee.mjs';
@@ -15,9 +15,14 @@ export const moves=[-.25,0,.25];
 export const label=d=>d>0?'0.25%p 인상':d<0?'0.25%p 인하':'동결';
 export const legacyKeys=['debtStock','imbalance','expectations','capacity'];
 const meetingMonths=dates.map(date=>Number(date.slice(5,7)));
-export function start(seed,background){
+export function start(seed,background,scenarioId='standard'){
  if(background&&!Object.hasOwn(backgrounds,background))throw Error('Invalid background');
- return {seed:seed>>>0,turn:0,phase:'office',state:{...initial},path:[{...initial}],records:[],market:{...openingMarket},politics:openingPolitics(),
+ const pool=['standard','inflation','stagnation','fx','debt','chips'];
+ const id=scenarioId==='random'?pool[Math.floor(seededDraw(seed,0,7719)*pool.length)]:scenarioId;
+ const chosen=startScenarios[id]??startScenarios.standard;
+ const st={...chosen.state};
+ const mkt={...chosen.market};
+ return {seed:seed>>>0,scenario:chosen.id,turn:0,phase:'office',state:st,path:[{...st}],records:[],market:mkt,politics:openingPolitics(),
  ...(background?{background,roster:selectRoster(seed),memberTrust:{}}:{})};
 }
 export function briefing(game){

@@ -6,7 +6,7 @@ import {start,opinions,decide,onward,compare,moves,label,briefs,meetingImpact,re
 import {dates,scheduleSource} from './schedule.mjs';
 
 import {rateLevels,horizon,openingMarket} from './dots.mjs';
-import {incidents,crisisResponses} from './scenarios.mjs';
+import {incidents,crisisResponses,startScenarios} from './scenarios.mjs';
 import {politicalReplies,constituencies,openingPolitics} from './politics.mjs';
 import {backgrounds,evidenceNames,getCommittee} from './committee.mjs';
 import {historicalVerdict} from './verdict.mjs';
@@ -23,12 +23,12 @@ const key='bok-governor-v2';
 let game;
 try {
  const saved=JSON.parse(localStorage.getItem(key));
- if(saved?.state && ['setup','inaugural','office','crisis','government','meeting','review','dots','press','result','newspaper','end'].includes(saved.phase) && Array.isArray(saved.records) && Array.isArray(saved.path))game=saved;
+ if(saved?.state && ['setup','scenario','inaugural','office','crisis','government','meeting','review','dots','press','result','newspaper','end'].includes(saved.phase) && Array.isArray(saved.records) && Array.isArray(saved.path))game=saved;
 } catch {}
 const newGame=()=>({...start(crypto.getRandomValues(new Uint32Array(1))[0]),phase:'setup'});
 game??=newGame();
-let titleOpen=game.phase==='setup'||globalThis.performance?.getEntriesByType?.('navigation')[0]?.type==='navigate';
-let savedTerm=game.phase==='setup'?null:game;
+let titleOpen=game.phase==='setup'||game.phase==='scenario'||globalThis.performance?.getEntriesByType?.('navigation')[0]?.type==='navigate';
+let savedTerm=(game.phase==='setup'||game.phase==='scenario')?null:game;
 try{document.documentElement?.classList.toggle('reduce-motion',localStorage.getItem('bok-reduce-motion')==='1');}catch{}
 let selectedMember=null,argumentMethod=null,meetingStep=game.context?.uiStep??0;
 const alternativeTo=change=>moves.find(d=>d!==change);
@@ -39,7 +39,7 @@ const radio=(name,items,current)=>'<div class="choice">'+items.map(([v,t])=>'<la
 const button=(action,title,primary=true)=>'<button class="'+(primary?'primary':'secondary')+'" data-action="'+action+'">'+title+'</button>';
 function commit(next){
  game=next;
- if(next.phase!=='setup')savedTerm=next;
+ if(next.phase!=='setup'&&next.phase!=='scenario')savedTerm=next;
  if(game.phase==='result'&&alternative===game.records.at(-1).change)alternative=alternativeTo(game.records.at(-1).change);
  try{localStorage.setItem(key,JSON.stringify(next));saveMessage='';}catch{saveMessage='브라우저 저장을 사용할 수 없습니다. 이 탭에서 플레이를 계속할 수 있습니다.';}
  render(true);
@@ -226,7 +226,7 @@ function pressTranscript(c){
 }
 
 function inauguralScreen(){
- const r=game.inaugural, n=r.answers.length, q=inauguralQuestions(r.indicators)[n];
+ const r=game.inaugural, n=r.answers.length, q=inauguralQuestions(r.indicators, r.scenario??game.scenario??'standard')[n];
  return '<section class="panel inaugural"><div class="eyebrow">2027년 1월 · 게임 속 가상 기자간담회</div><h1>한국은행 총재 신년 기자간담회</h1><figure class="press-stage"><div class="scene scene-press" aria-hidden="true"></div><figcaption>'+backgrounds[game.background].name+' 출신 신임 총재</figcaption></figure><section class="press-question"><div class="eyebrow">질문 '+(n+1)+' / 3</div><h2>'+q.reporter+'</h2>'+
  (n===0?'<p class="muted">매파는 물가를 잡기 위해 금리를 높게 유지하는 데, 비둘기파는 경기 여건을 고려해 금리를 낮추는 데 상대적으로 적극적인 입장입니다.</p>':'<p class="muted">말씀 감사합니다. '+(n===1?'올해 중점 현안도 여쭙겠습니다.':'마지막으로 경기 진단을 여쭙겠습니다.')+'</p>')+'<p>'+q.question+'</p>'+
  (n===1?'<p class="muted">올해 중점과 별도로, 한국은행의 통화정책은 물가안정을 우선합니다.</p>':'')+
@@ -279,7 +279,39 @@ function communicationEnding(e){
  return '<section class="panel dot-panel"><h2>'+e.title+'</h2><p>총재 전망 중앙값 기준 · 현행 금리보다 높은 발표 '+e.above+'회 · 낮은 발표 '+e.below+'회 · 여건을 설명한 전망 수정 '+e.flexible+'회</p><p>2027년 말 정책 신뢰 '+e.trust+'/100 · 발표 직후 예상금리 평균 변동 '+e.volatility.toFixed(2)+'%p · 근거가 부족한 상충 신호 '+e.unexplained+'회</p><p class="muted">2029년 재평가에 남긴 소통 기록입니다. 이후의 모형 금리는 후임 정책 가정에 따릅니다.</p></section>';
 }
 function setupScreen(){
- return '<section class="panel"><div class="eyebrow">2027년 임명</div><h1>어떤 총재로 시작할 것인가</h1><p>당신은 한국은행 총재입니다. 2027년 여덟 차례 금통위에서 물가, 경기, 금융안정 사이에서 판단해야 합니다. 기준금리는 위원회가 표결로 결정합니다.</p><p>위원에게 근거를 제시하고 정부 요구에 대응하세요. 결정의 결과는 중앙일보 1면과 2029년 역사적 평가에 남습니다.</p><div class="backgrounds">'+Object.entries(backgrounds).map(([id,b],i)=>'<article>'+memberPortrait(12+i)+'<h2>'+b.name+'</h2><p>'+b.focus+'</p><p class="muted">'+b.argument+'</p>'+button('background-'+id,'이 출신으로 시작')+'</article>').join('')+'</div></section>';
+ return '<section class="panel"><div class="eyebrow">2027년 임명</div><h1>어떤 총재로 시작할 것인가</h1><p>당신은 한국은행 총재입니다. 2027년 여덟 차례 금통위에서 물가, 경기, 금융안정 사이에서 판단해야 합니다. 기준금리는 위원회가 표결로 결정합니다.</p><p>위원에게 근거를 제시하고 정부 요구에 대응하세요. 결정의 결과는 중앙일보 1면과 2029년 역사적 평가에 남습니다.</p><div class="backgrounds">'+Object.entries(backgrounds).map(([id,b],i)=>'<article>'+memberPortrait(12+i)+'<h2>'+b.name+'</h2><p>'+b.focus+'</p><p class="muted">'+b.argument+'</p>'+button('background-'+id,'이 출신으로 선택')+'</article>').join('')+'</div></section>';
+}
+function scenarioScreen(){
+ const bg=backgrounds[game.background]??backgrounds.scholar;
+ const cards=Object.values(startScenarios).map(sc=>{
+  const s=sc.state;
+  const badge=sc.recommended?'<span class="badge scenario-badge">추천 · 균형</span>':'';
+  return '<article class="scenario-card'+(sc.recommended?' recommended-card':'')+'">'+
+  '<div class="row"><h2>'+sc.name+'</h2>'+badge+'</div>'+
+  '<p class="scenario-subtitle"><strong>'+sc.subtitle+'</strong></p>'+
+  '<div class="scenario-metrics-preview">'+
+   '<span>물가 '+value('inflation',s.inflation)+'</span>'+
+   '<span>경기 '+value('growth',s.growth)+'</span>'+
+   '<span>환율 '+Math.round(s.fx).toLocaleString('ko-KR')+'원</span>'+
+   '<span>위험 '+Math.round(s.stress)+'점</span>'+
+  '</div>'+
+  '<p class="scenario-dilemma"><strong>핵심 고민:</strong> '+sc.dilemma+'</p>'+
+  '<p class="muted">'+sc.desc+'</p>'+
+  button('scenario-'+sc.id,'이 환경으로 임기 시작')+'</article>';
+ }).join('');
+
+ const randomCard='<article class="scenario-card scenario-random-card">'+
+ '<div class="row"><h2>🎲 무작위 시나리오</h2><span class="badge">도전</span></div>'+
+ '<p class="scenario-subtitle"><strong>무작위 경제 여건에서 시작</strong></p>'+
+ '<p>기본 및 5개 경제 시나리오 중 하나가 무작위로 배정됩니다. 첫 회의까지 어떤 상황인지 예측할 수 없습니다.</p>'+
+ button('scenario-random','무작위로 시작',false)+'</article>';
+
+ return '<section class="panel scenario-panel"><div class="eyebrow">2027년 대한민국 경제 여건 선택</div>'+
+ '<h1>어떤 경제 상황에서 출발할 것인가</h1>'+
+ '<p>선택한 총재: <strong>'+bg.name+'</strong> ('+bg.focus+')</p>'+
+ '<p>경제 환경에 따라 <strong>초기 경제지표, 시장 전망(BOK워치), 위원들의 판단과 취임 기자회견 쟁점</strong>이 달라집니다.</p>'+
+ '<div class="scenario-grid">'+cards+randomCard+'</div>'+
+ '<div class="stage-actions">'+button('back-setup','← 총재 출신 다시 선택',false)+'</div></section>';
 }
 function riskBrief(g=game){
  const b=briefing(g),last=g.records.at(-1);
@@ -455,7 +487,7 @@ function scoreChange(k,from,to){
  return delta===0?'→ 보합':(delta>0?'↑ ':'↓ ')+Math.abs(delta).toFixed(2)+unit;
 }
 function economicHud(){
- if(game.phase==='setup')return '';
+ if(game.phase==='setup'||game.phase==='scenario')return '';
  const [,prev,now]=scoreSnapshots();
  const observed=game.state.month?new Date(Date.UTC(2027,game.state.month,0)).toISOString().slice(0,10):'2027-01-01';
  const item=k=>'<span><small>'+(metrics[k]?.[0]??scoreLabels[k])+'</small> <strong>'+scoreValue(k,now[k])+'</strong><small> '+scoreChange(k,prev[k],now[k])+'</small></span>';
@@ -531,8 +563,8 @@ function titleScreen(){
  return '<section class="title-scene"><div class="title-copy"><p class="eyebrow">2027 · 통화정책 전략 시뮬레이션</p><h1 class="title-wordmark"><span class="title-korean" aria-label="한은 총재"><span>한은</span> <span>총재</span></span><small lang="en">Governor of the Bank of Korea</small></h1><p>금리는 당신이 결정한다.<br>그 대가는 경제가 치른다.</p><div class="title-actions">'+button('new-term','새 게임')+(savedTerm?button('resume-term','이어하기',false):'')+'<button class="secondary" data-view="model">게임 방법</button>'+button('settings','설정',false)+'</div></div></section>';
 }
 function render(focusMain=false){
- const scenes={setup:setupScreen,inaugural:inauguralScreen,office,crisis:crisisScreen,government:governmentScreen,meeting,review:reviewScreen,dots:dotsEntry,press:pressScreen,result,newspaper:newspaperScreen,end:ending};
- const playing=!titleOpen&&game.phase!=='setup';
+ const scenes={setup:setupScreen,scenario:scenarioScreen,inaugural:inauguralScreen,office,crisis:crisisScreen,government:governmentScreen,meeting,review:reviewScreen,dots:dotsEntry,press:pressScreen,result,newspaper:newspaperScreen,end:ending};
+ const playing=!titleOpen&&game.phase!=='setup'&&game.phase!=='scenario';
  const step=playing&&game.turn<dates.length?'<p class="game-step">'+(game.turn+1)+' / 8차 회의</p>':'';
  main.innerHTML=titleOpen?titleScreen():step+(saveMessage?'<p role="status">'+saveMessage+'</p>':'')+scenes[game.phase]();
  if(dock)dock.innerHTML=playing?economicHud()+button('pause','메뉴',false):'';
@@ -567,7 +599,15 @@ document.addEventListener('click',e=>{
  selectedMember=null;argumentMethod=null;titleOpen=false;render(true);return;
  }
  if(action==='new-term'){game=newGame();titleOpen=false;render(true);return;}
- if(action.startsWith('background-')){commit(startInaugural(start(game.seed,action.slice(11))));return;}
+ if(action.startsWith('background-')){commit({...game,background:action.slice(11),phase:'scenario'});return;}
+ if(action==='back-setup'){commit({...game,phase:'setup'});return;}
+ if(action.startsWith('scenario-')){
+  const scId=action.slice(9);
+  const bg=game.background??'scholar';
+  const started=start(game.seed,bg,scId);
+  commit(startInaugural(started));
+  return;
+ }
  if(action.startsWith('step-')){
  meetingStep=Number(action.slice(5));selectedMember=null;argumentMethod=null;
  commit({...game,context:{...game.context,uiStep:meetingStep}});return;
@@ -584,8 +624,8 @@ document.addEventListener('click',e=>{
  }
 });
 document.addEventListener('keydown',e=>{
- if(e.key==='Escape'&&!titleOpen&&game.phase!=='setup'&&!document.querySelector('dialog[open]')){e.preventDefault();pauseGame(document.activeElement);return;}
- if(e.altKey&&e.code==='KeyE'&&!titleOpen&&game.phase!=='setup'){
+ if(e.key==='Escape'&&!titleOpen&&game.phase!=='setup'&&game.phase!=='scenario'&&!document.querySelector('dialog[open]')){e.preventDefault();pauseGame(document.activeElement);return;}
+ if(e.altKey&&e.code==='KeyE'&&!titleOpen&&game.phase!=='setup'&&game.phase!=='scenario'){
  e.preventDefault();showScorecard(document.activeElement);
  }
 });
