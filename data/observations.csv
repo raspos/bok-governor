@@ -1,0 +1,10 @@
+publisher,series,period,frequency,unit,value,source
+BOK,Policy decision,2026-10-22,meeting,percent,3.00,https://www.bok.or.kr/portal/main/main.do
+BOK,CPI year over year,2026-10,monthly,percent,2.8,https://www.bok.or.kr/portal/main/main.do
+BOK,New bank lending weighted average,2026-09,monthly,percent,4.57,https://www.bok.or.kr/portal/main/main.do
+Federal Reserve Board,FEDFUNDS,2026-06,monthly,percent NSA,3.63,https://fred.stlouisfed.org/series/FEDFUNDS
+Federal Reserve Board,FEDFUNDS,2026-07,monthly,percent NSA,3.63,https://fred.stlouisfed.org/series/FEDFUNDS
+Federal Reserve Board,FEDFUNDS,2026-08,monthly,percent NSA,3.63,https://fred.stlouisfed.org/series/FEDFUNDS
+Federal Reserve Board,FEDFUNDS,2026-09,monthly,percent NSA,3.75,https://fred.stlouisfed.org/series/FEDFUNDS
+Federal Reserve Board,FEDFUNDS,2026-10,monthly,percent NSA,3.88,https://fred.stlouisfed.org/series/FEDFUNDS
+

@@ -1,0 +1,384 @@
+*{box-sizing:border-box} :root{--navy:#101c2b;--ink:#192739;--gold:#b19158;--paper:#f4f0e7;--line:#dcd3c2;--muted:#625c52;--white:#fffdf7} body{margin:0;background:var(--paper);color:var(--ink);font-family:"Malgun Gothic",system-ui,sans-serif;line-height:1.55} .shell{width:min(1160px,calc(100% - 64px));margin:auto}.mast{background:var(--navy);color:#f8f0df;border-bottom:3px solid var(--gold)}.bar{display:flex;justify-content:space-between;align-items:center;min-height:83px;gap:16px}.brand{color:inherit;text-decoration:none;display:flex;align-items:center;gap:13px}.brand b{font-size:21px;display:block;line-height:1.15}.brand small,.eyebrow,footer,.edition{letter-spacing:.12em;font-size:11px;font-weight:700}.brand small{color:#dfc494}.seal{border:1px solid #ac956b;width:41px;height:41px;display:grid;place-items:center;font:24px Georgia;color:#dfc494}.edition span{margin-left:12px;border:1px solid #655743;padding:5px 8px;color:#dfc494}nav{display:flex;gap:20px;border-bottom:1px solid var(--line);margin-bottom:26px;flex-wrap:wrap}nav button{background:none;color:var(--muted);border:0;border-bottom:2px solid transparent;padding:14px 0;font-weight:700}nav button[aria-current]{border-color:#8b6a36;color:var(--ink)}button,select,input{font:inherit}button{cursor:pointer}button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid #99743c;outline-offset:3px}button.primary{background:#d9b77c;color:#142030;border:1px solid #d9b77c;padding:12px 20px;font-weight:800}button.secondary,select{background:var(--white);border:1px solid var(--line);color:var(--ink);padding:9px 12px}.hero{min-height:296px;background:#101c2b;color:#fff9ed;display:grid;grid-template-columns:1.2fr 1fr;overflow:hidden;border:1px solid #1e2c3f}.hero-copy{padding:36px 42px;position:relative;z-index:1}.hero .eyebrow{color:#e0c18b}.hero p{color:#ddd7cc}.hero-art{min-height:180px;background:linear-gradient(90deg,#101c2b,transparent 37%),url('./office.jpg') center/cover,#223348}.hero h1, h1{font-family:"Batang",Georgia,serif;font-size:clamp(30px,5vw,58px);line-height:1.15;margin:12px 0 15px;letter-spacing:-.05em}h2{margin:0 0 8px;font-size:20px}p{margin:7px 0 16px}.row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1px;border:1px solid var(--line);background:var(--line);margin:20px 0}.metric{background:var(--white);text-align:left;padding:15px;border:0;color:var(--ink)}.metric strong{display:block;font:700 clamp(20px,3vw,32px) Georgia;margin:5px 0}.metric span,.muted{color:var(--muted);font-size:13px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:18px 0}.panel{background:var(--white);border:1px solid var(--line);padding:20px;min-width:0}.panel h3{margin:4px 0}.eyebrow{color:#73582e}.choice{display:flex;gap:9px;flex-wrap:wrap}.choice label{display:flex;align-items:center;gap:4px;background:#f6f2e8;border:1px solid var(--line);padding:9px}.choice label:has(:checked){border-color:#8b6a36;background:#eee2c9}fieldset{border:0;padding:0;margin:12px 0 18px;min-width:0}legend{font-weight:800;margin-bottom:7px}.members{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:18px}.member{padding:11px;background:#f1ecdf;border-top:2px solid var(--gold)}.member small{display:block}.chart{width:100%;height:155px;display:block}.key{display:flex;gap:12px;flex-wrap:wrap;font-size:12px}.key span::before{content:'— ';color:#936a29}.table{width:100%;border-collapse:collapse;font-size:14px}.table th,.table td{text-align:left;border-bottom:1px solid var(--line);padding:8px 4px;overflow-wrap:anywhere}.end{background:var(--white);border-top:4px double var(--ink);padding:28px;margin-top:20px}footer{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin:32px 0;padding-top:16px;border-top:1px solid var(--line);color:var(--muted)}a{color:#73582e}dialog{width:min(620px,calc(100% - 28px));max-height:90vh;overflow:auto;border:1px solid var(--line);background:var(--white);color:var(--ink);padding:20px}dialog::backdrop{background:#101c2bbb}@media(max-width:768px){.shell{width:calc(100% - 32px)}.hero-copy{padding:26px}.metrics{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:540px){.edition{display:none}.bar{min-height:66px}nav{gap:12px;margin-bottom:16px}nav button{font-size:12px}.hero{grid-template-columns:1fr}.hero-art{grid-row:1;min-height:135px;background-image:linear-gradient(0deg,#101c2b,transparent 50%),url('./office.jpg')}.hero-copy{padding:17px 20px 23px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.grid{grid-template-columns:1fr}.members{grid-template-columns:repeat(2,minmax(0,1fr))}.panel{padding:14px}.table{font-size:12px}}
+
+.dot-panel{margin:16px 0}
+.dot-charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+.dot-charts>section:only-child{grid-column:1/-1;max-width:520px}
+.dot-axis,.dot-row{display:grid;grid-template-columns:4rem minmax(0,1fr) 1.25rem;align-items:center;gap:6px}
+.dot-axis{color:var(--muted);font-size:12px;margin:8px 0}
+.dot-row{min-height:27px;border-bottom:1px solid var(--line);font-size:13px;font-variant-numeric:tabular-nums}
+.dot-current{background:#eee2c9}
+.dot-track{display:grid;grid-template-columns:repeat(21,minmax(0,1fr));align-items:center;justify-items:center}
+.dot-track i{display:block;width:min(72%,10px);aspect-ratio:1;border-radius:50%;background:#28475d}
+.dot-count{text-align:right}
+.dot-marker{font-size:12px;color:#73582e;font-weight:700}
+.dot-inputs{display:flex;flex-wrap:wrap;gap:12px;margin:16px 0}
+.dot-inputs label{display:flex;gap:8px;align-items:center}
+@media(max-width:620px){.dot-charts{grid-template-columns:1fr;gap:14px}.dot-row,.dot-axis{grid-template-columns:3.25rem minmax(0,1fr) 1.25rem}}
+.scene{height:clamp(120px,21vw,260px);margin:14px 0 19px;background:#1b2c40 center 47%/cover;border-bottom:3px solid var(--gold)}
+.scene-board{background-image:url('./board.jpg')}
+.scene-press{background-image:url('./press-v2.jpg')}
+.backgrounds{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.backgrounds article{border:1px solid var(--line);padding:14px;background:#f8f3e8}
+.portrait{height:180px;background:#1b2c40 url('./governors.jpg') no-repeat;background-size:300% auto;margin:-14px -14px 14px}
+.portrait-scholar{background-position:left 38%}.portrait-official{background-position:center 38%}.portrait-politician{background-position:right 38%}
+.crisis{border-top:5px solid #90372e;margin-bottom:20px}.crisis .eyebrow{color:#84271f}
+.government{border-top:5px solid var(--gold);background:#fefbf0}
+blockquote{border-left:3px solid var(--gold);padding:12px 16px;margin:12px 0;background:#f2ecdd}
+.risk-brief,.political-report,.dialogue{margin:16px 0}
+.risk-brief{border-left:3px solid var(--gold)}
+.member-link{border:0;padding:4px 0;background:transparent;color:var(--ink);font-weight:800;text-decoration:underline;text-underline-offset:4px}
+.newspaper{margin:20px 0;padding:clamp(14px,4vw,36px);background:#fdf8eb;border:4px double var(--ink)}
+.newspaper .row{border-bottom:1px solid var(--ink);padding-bottom:10px;font-size:13px}
+.newspaper h2{font-family:"Batang",Georgia,serif;font-size:clamp(26px,5vw,50px);margin:15px 0}
+.timeline{list-style:none;padding:0;margin:0}
+.timeline li{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;border-bottom:1px solid var(--line);padding:6px 0;font-size:14px}
+.political-report table{max-width:38rem}
+@media(max-width:600px){.backgrounds{grid-template-columns:1fr}.portrait{height:200px}.crisis .choice,.government .choice{display:grid}.crisis .choice label,.government .choice label{min-height:44px}.timeline li{font-size:12px}}
+button,select,input{touch-action:manipulation}
+.advance-action{margin:16px 0 20px}
+.member-link{text-align:left;word-break:keep-all}
+@media(max-width:380px){nav{gap:9px}nav button{font-size:11px}.metric:last-child{grid-column:1/-1}.risk-brief h2,.member small{word-break:keep-all}}
+@media(max-width:480px){
+.impact-table,.impact-table thead,.impact-table tbody{display:block}
+.impact-table tr{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+.impact-table thead th:first-child{display:none}
+.impact-table tbody th{grid-column:1/-1;border:0;padding-bottom:0;word-break:keep-all}
+.impact-table td{white-space:nowrap;overflow-wrap:normal;font-variant-numeric:tabular-nums}
+}
+.ability{margin:16px 0;border-top:3px solid var(--gold)}
+.debate-turn{margin:16px 0;padding:14px;border-left:3px solid var(--gold);background:#f5edda}
+.debate-turn p:last-child{margin-bottom:0}
+.verdict-turn{border-top:3px solid #b69051;background:#142a3f;color:#f8f3e6;padding:14px 16px;margin:6px 0 14px}
+.verdict-turn blockquote{color:var(--ink)}.verdict-turn .eyebrow{color:#e9c88c}.verdict-turn h3{margin:4px 0 8px}
+.government-president{border-left:6px solid #9a6d36;background:#f8f2e3}
+.poll-drop{border-top:4px solid #a04436}.trust-recovery{border-left:3px solid #3d6c66;padding-left:10px}
+.legacy-brief{margin:16px 0;border-top:3px solid var(--gold)}
+.watch-panel{margin:16px 0;border-top:3px solid #26475b}
+.watch-hero{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;margin:.5rem 0}
+.watch-hero strong{font:700 clamp(2.5rem,8vw,4.5rem)/1 Georgia,serif;color:#913c35}
+.watch-probabilities,.watch-reaction{display:flex;gap:8px 18px;flex-wrap:wrap;margin:12px 0;font-variant-numeric:tabular-nums}
+.watch-probabilities .watch-raise{color:#913c35}.watch-probabilities .watch-hold{color:#73572b}.watch-probabilities .watch-cut{color:#24516c}
+.watch-bar{display:flex;height:9px;background:#ded4c5;margin:10px 0 14px;overflow:hidden;border-radius:2px}
+.watch-bar .watch-raise{background:#af5147}.watch-bar .watch-hold{background:#ae884a}.watch-bar .watch-cut{background:#426d8a}
+.watch-chart{display:block;width:100%;max-height:190px}
+.watch-chart .watch-raise{stroke:#af5147}.watch-chart .watch-hold{stroke:#ae884a}.watch-chart .watch-cut{stroke:#426d8a}
+.watch-reaction span{white-space:nowrap}
+@media(max-width:380px){nav{gap:6px}nav button{font-size:10px;white-space:nowrap}}
+.goal-panel{margin:16px 0;border-top:3px solid #98733d}
+.goal-number strong{font-size:clamp(1.15rem,4vw,1.6rem);font-variant-numeric:tabular-nums}
+.goal-panel .choice{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))}
+.goal-panel .choice label{min-height:44px}
+.policy-preview{padding:12px 0;border-top:1px solid #ddd0b8;border-bottom:1px solid #ddd0b8;margin-bottom:16px}
+.goal-table td{font-variant-numeric:tabular-nums}
+.goal-panel details{padding:8px 0;border-top:1px solid #dfd3bd}
+.press-opening{border-left:3px solid var(--gold,#b79352);padding-inline-start:1rem;margin-block:1.5rem}
+.press-question{margin-block:1rem;padding:clamp(.65rem,2vw,1.5rem);border:1px solid #9b855d;border-radius:.4rem}
+.press-option{display:flex;align-items:flex-start;gap:.7rem;padding:.65rem 0;cursor:pointer}
+.press-option input{flex:none;margin-top:.3rem}
+.press-option small{display:block;margin-top:.3rem}
+.press-transcript{padding-inline-start:1.4rem}
+.front-page{background:#f7f0e0;color:#192235;padding:clamp(.9rem,4vw,3rem);border:1px solid #9e8558;box-shadow:0 .6rem 2rem #0004}
+.front-page header{text-align:center;border-block:4px double #192235}
+.front-page header p{margin:.55rem 0}
+.masthead,.front-page h1{font-family:"Batang","Noto Serif KR",serif;word-break:keep-all;overflow-wrap:anywhere}
+.masthead{font-size:clamp(2rem,6vw,4rem);font-weight:900}
+.front-page h1{font-size:clamp(1.65rem,4vw,3.3rem);line-height:1.2;margin:1.25rem 0 .8rem}
+.front-deck{font-weight:650;border-bottom:1px solid #a89980;padding-bottom:1rem}
+.front-columns{display:grid;grid-template-columns:2fr 1fr;gap:1.3rem}
+.front-columns aside{border-left:1px solid #a89980;padding-left:1rem}
+.front-figures{list-style:none;padding:0}
+.front-figures li{display:flex;flex-wrap:wrap;justify-content:space-between;gap:.3rem;padding:.55rem 0;border-bottom:1px solid #ccbea4}
+.front-page footer{border-top:4px double #192235;margin-top:1.2rem;padding-top:1rem}
+.front-page summary{cursor:pointer;min-height:44px}
+@media(max-width:640px){.front-columns{grid-template-columns:1fr}.front-columns aside{order:-1;border-left:0;padding-left:0}}
+.press-stage{margin:0;position:relative}
+.press-stage figcaption{background:#0c1628;color:#f7e8ca;display:table;margin:-1rem auto 0;padding:.55rem 1.2rem;border:1px solid #af914f;position:relative;text-align:center}
+.front-page .muted{color:#4b4a44}
+.front-page .chart{max-height:8rem}
+.front-page{background:#faf7ef;color:#242321}
+.front-page header{border-block:1px solid #292622}
+.joongang-logo{width:clamp(11rem,42vw,19rem);aspect-ratio:263/67;margin:.6rem auto;background:url('./joongang-logo.png') center/contain no-repeat}
+.front-page header p:first-child{color:#a62817;font-weight:700}
+.front-page footer{border-top:1px solid #a62817}
+.newspaper.front-page h2{line-height:1.2;margin-block:1rem;font-family:"Batang","Noto Serif KR",serif;font-size:clamp(1.65rem,4vw,3rem)}
+.front-page .front-story[open] p{line-height:1.7}
+.game-step{border-left:3px solid #a9864b;padding:.3rem .65rem;font-weight:650;font-size:.88rem;margin:0 0 1rem}
+.agenda{border-left:4px solid #a62817}
+.front-page header p{word-break:keep-all}
+.meeting-steps{display:flex;gap:4px;list-style:none;padding:0;margin:0 0 1rem;flex-wrap:wrap}
+.meeting-steps li[aria-current] button{background:#172838;color:#fff6e5;border-color:#172838}
+.stage-actions{display:flex;justify-content:flex-end;gap:10px;margin:1rem 0;flex-wrap:wrap}
+.decision-desk:not(:has(.meeting-stage:not([hidden]))){display:none}
+.committee-table{background:#172838;color:#fff6e5;padding:clamp(.65rem,3vw,1.7rem);border-bottom:3px solid #ae925f}
+.governor-seat{display:flex;align-items:center;justify-content:center;gap:.7rem;margin-bottom:.8rem}
+.governor-seat .portrait{width:58px;height:64px;margin:0;border:1px solid #ae925f}
+.committee-table .members{grid-template-columns:repeat(3,minmax(0,1fr));margin:0}
+.committee-table .member{background:#24374a;color:#fff6e5;border-top:1px solid #b39157;min-width:0}
+.committee-table .member-link{display:grid;justify-items:center;gap:.16rem;color:inherit;text-align:center;border:0;background:transparent;padding:0;width:100%;word-break:keep-all}
+.member-portrait{display:block;width:64px;max-width:100%;aspect-ratio:1/1.1;background:#142130 url('./committee-portraits.jpg') var(--portrait-x) var(--portrait-y)/400% 300% no-repeat;border:1px solid #ad9263}
+.member-shift{outline:2px solid #ddba79}
+.speaker{display:flex;align-items:center;gap:.7rem}
+.speaker .member-portrait{width:88px}
+.dialogue{border-left:4px solid #9b7d4c}
+.press-question{border-left:4px solid #427a78;background:#fbfaf6}
+.government-president{border-top:5px solid #a18044}
+.watch-panel{border-top:3px solid #38706d}
+.front-page{box-shadow:0 .65rem 2rem #0003}
+@media(max-width:540px){.committee-table .members{grid-template-columns:repeat(2,minmax(0,1fr))}.meeting-steps li{flex:1 0 31%}.meeting-steps button{width:100%;padding:.42rem .22rem;font-size:.72rem}.stage-actions button,.member-link{min-height:44px}.stage-actions{justify-content:space-between}}
+@media(prefers-reduced-motion:no-preference){.meeting-stage:not([hidden]),.front-page{animation:stage-in .18s ease-out}@keyframes stage-in{from{opacity:.65}to{opacity:1}}}
+.office-desk{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:1rem;align-items:start;margin-top:1rem}
+.office-desk .metrics{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:0}
+.forecast-choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,9rem),1fr));gap:6px}
+.forecast-choices article{background:#f5f0e4;padding:.7rem;border-block-start:2px solid #b1a18b}
+.forecast-choices article.forecast-selected{border-color:#397673;background:#e7f0eb}
+.forecast-choices h4{margin:0}
+.forecast-choices strong{font-size:1.35rem}
+.forecast-choices small{display:block}
+@media(max-width:620px){.office-desk{display:flex;flex-direction:column}.office-desk>*{width:100%}.office-desk .watch-panel{order:-1}.office-desk .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.government-document{margin-block:1rem;border:1px solid #cfbf9e;padding:clamp(.65rem,3vw,1.5rem);background:#f4edde}
+.government-document span{color:#76562e;font-weight:750;font-size:.8rem}
+.government-hearing .government-document{background:#edf2f4;border-color:#9fb0bc}
+.government-president .government-document{background:#182a3c;color:#fff7e5;border-color:#ac8955}
+.government-president .government-document span{color:#e2bf82}
+.press-stage .scene{background-position:center 42%}
+
+.meeting-hint{border-inline-start:3px solid #ad9159;padding-inline-start:.7rem}
+.persuasion-result{border-inline-start:4px solid #976347;padding:.7rem;background:#f4e8dc}
+.persuasion-changed{border-color:#397673;background:#e4f0eb}
+.front-highlight span,.front-highlight strong{display:block}
+.front-highlight strong{font-size:clamp(1.15rem,3vw,1.7rem)}
+.front-page h1,.game-step,.press-stage figcaption{word-break:keep-all;overflow-wrap:anywhere}
+.press-opening summary{cursor:pointer;font-weight:750;min-height:44px}
+@media(max-width:540px){.press-option{min-height:44px}.meeting-steps button{min-height:44px}.front-columns aside{padding-bottom:.7rem}}
+body{background:#0e1723;color:#f0e6d4}
+.mast{border-bottom:1px solid #a78b54}
+nav{border-color:#3b4752}
+nav button,body>.shell>footer{color:#e1d6c2}
+nav button[aria-current]{color:#ffda9e;border-color:#c4a66d}
+main>.eyebrow,.game-step,main>.muted{color:#dfc28e}
+.panel,.front-page,.end{color:#192739}
+.office-scene{position:relative;isolation:isolate;min-height:clamp(390px,52vw,670px);display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;border:1px solid #8a7454;background:#142030 url('./office52.jpg') center 55%/cover no-repeat}
+.office-scene:before{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,#080e18cc,transparent 44%,#080e18d9)}
+.office-caption{padding:clamp(1rem,4vw,3.4rem);text-shadow:0 2px 12px #000}
+.office-caption .eyebrow{color:#f2cc8e}
+.office-hotspots{display:flex;flex-wrap:wrap;gap:.65rem;justify-content:center;padding:1.3rem}
+.office-hotspots button.secondary{background:#101b2be8;color:#fff3d8;border-color:#a78b54}
+.office-document{width:min(860px,calc(100% - 28px));border-top:4px solid #a78b54}
+.meeting-room{background-image:url('./board52.jpg');height:clamp(130px,22vw,290px);margin-bottom:0}
+.meeting-steps{padding:.55rem;background:#172638}
+.meeting-speaker{color:#f0d5a4;font-weight:700}
+.meeting-hint{color:#e4dccd}
+.committee-table{position:relative;isolation:isolate;background:#142030 url('./board52.jpg') center/cover no-repeat}
+.committee-table:before{content:'';position:absolute;inset:0;background:#0c142ac0;z-index:-1}
+.committee-table .members{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:clamp(1.3rem,22vw,23rem)}
+.committee-table .member:nth-child(odd){text-align:right}
+.committee-table .member{text-align:left;background:#111c2be8}
+.committee-table .member-link{display:flex;align-items:center;justify-content:start;gap:.55rem;flex-wrap:wrap;text-align:left}
+.committee-table .member:nth-child(odd) .member-link{justify-content:end}
+.character-scene{background:#172638;color:#fff1d8;border:1px solid #967a4d;padding:clamp(1rem,3vw,2rem)}
+.character-scene .speaker .member-portrait{width:clamp(94px,16vw,180px);aspect-ratio:1}
+.character-scene .speaker{align-items:end}
+.character-scene .muted{color:#ddd0b8}
+.character-scene .choice label,.character-scene .persuasion-result,.character-scene .debate-turn{color:#162639}
+.character-scene blockquote{border-inline-start:2px solid #bb9b64;padding-inline-start:.8rem;margin-inline:.4rem;font-size:1.05rem}
+.character-scene .persuasion-held .member-portrait{filter:saturate(.7)}
+.ballot-scene{background:#111d2b;color:#fff1d8;border:1px solid #a78b54}
+.ballot-heading{min-height:100px;padding:1rem;background:linear-gradient(90deg,#101928f5,#10192866),url('./board52.jpg') center/cover}
+.ballot-heading .eyebrow{color:#eed093}
+.ballot-roll{list-style:none;padding:0}
+.ballot-roll li{display:flex;justify-content:space-between;gap:.5rem;padding:.5rem;border-top:1px solid #506070}
+.ballot-rate strong{font-size:1.35rem}
+.market-terminal{background:#101d2b;border:1px solid #597e81;padding:clamp(.75rem,3vw,2rem);color:#adede0}
+.market-terminal .watch-panel{background:#142936;color:#e1f2ed;border-color:#508c89}
+.market-terminal .watch-panel .eyebrow,.market-terminal .watch-panel .muted{color:#a7d1cb}
+.political-backdrop,.crisis-backdrop{height:clamp(155px,27vw,340px);background:#172638 center/cover no-repeat;border-bottom:2px solid #ae915a}
+.government-president .political-backdrop{background-image:url('./president52.jpg')}
+.government-hearing .political-backdrop{background-image:url('./hearing52.jpg')}
+.government-ministry .political-backdrop{background-image:url('./ministry52.jpg')}
+.crisis-backdrop{background-image:url('./crisis52.jpg');border-color:#b55843}
+@media(max-width:540px){.office-scene{min-height:450px}.office-hotspots{display:grid;grid-template-columns:1fr 1fr;padding:.65rem}.office-hotspots button{padding:.5rem;min-height:48px}.committee-table .members{gap:.45rem}.committee-table .member-link,.committee-table .member:nth-child(odd) .member-link{justify-content:center}.committee-table .member,.committee-table .member:nth-child(odd){text-align:center}.character-scene .choice label{width:100%;min-height:44px}.character-scene .speaker{align-items:center}}
+@media(prefers-reduced-motion:no-preference){.ballot-roll li{animation:stage-in .24s ease-out both;animation-delay:calc(var(--ballot-index)*95ms)}.office-document[open]{animation:stage-in .18s ease-out}}
+.government-president .government-document blockquote,.character-scene blockquote{color:#fff1d8;background:#102032}
+.market-terminal .watch-probabilities .watch-raise{color:#ffb3a0}
+.market-terminal .watch-probabilities .watch-hold{color:#ffdf9f}
+.market-terminal .watch-probabilities .watch-cut{color:#9cddf7}
+.character-scene .speaker .member-portrait{box-shadow:0 .45rem 1.2rem #0007}
+@media(min-width:900px){.office-hotspots{justify-content:space-between;padding:1.3rem 2.1rem}}
+.economic-hud{background:#111f30;border-block:1px solid #52616a;color:#f4ead9;padding:.45rem .65rem;margin-bottom:.65rem;font-size:.82rem}
+.hud-core,.hud-more{display:flex;align-items:center;gap:.55rem 1rem;flex-wrap:wrap}
+.hud-core small,.hud-more small{color:#d7c5a8}
+.hud-core button{margin-inline-start:auto;min-height:39px}
+.economic-hud summary{cursor:pointer;color:#d9bd87;margin-top:.25rem}
+.hud-more{margin:.3rem 0}
+.scorecard{width:min(910px,calc(100% - 24px));border-top:4px solid #a88b56}
+.score-tabs{display:flex;flex-wrap:wrap;gap:.35rem}
+.score-tabs button{padding:.55rem;border:1px solid #a58e66;background:#fdf7e9;color:#192739}
+.score-tabs button[aria-pressed=true]{background:#1b3449;color:#fff2d9}
+.score-content section{margin-block:1.1rem}
+.score-trend svg{display:block;width:100%;max-height:145px;background:#f8f3e8}
+.score-goal{border-inline-start:3px solid #a88b56;padding-inline-start:.7rem}
+@media(max-width:540px){.hud-core{display:grid;grid-template-columns:1fr 1fr;gap:.3rem}.hud-core button{grid-column:1/-1;margin:0;justify-self:start}.hud-core>span small:first-child{display:block}.scorecard{padding:.65rem}.scorecard .table{table-layout:fixed}.scorecard .table th,.scorecard .table td{padding:.35rem .15rem;font-size:.7rem}}
+
+.council-scene{border:1px solid #6e604f;background:#111c2a}
+.council-title{display:flex;align-items:end;justify-content:space-between;gap:1rem;padding:.85rem 1.2rem}
+.council-title h1{margin:.18rem 0 0;font-size:clamp(1.8rem,4vw,3.3rem)}
+.council-title .eyebrow,.council-title strong{color:#eac783}
+.council-title p{margin:0;white-space:nowrap}
+.council-room{position:relative;height:clamp(350px,48vw,590px);overflow:hidden;background:#172435 url('./council-chamber.jpg') center/cover}
+.council-seats{position:absolute;inset:0}
+.council-chair,.council-person{position:absolute;transform:translateX(-50%);display:grid;justify-items:center;align-content:end;color:#fff7e8}
+.council-chair{left:50%;top:5%;width:13%}
+.council-person{width:16%;padding:0;border:0;background:none}
+.council-person .cast-portrait,.council-chair .cast-portrait{width:100%;max-width:none;aspect-ratio:.86;border:0}
+.council-person>span:last-child,.council-chair>strong{background:#0c1727ed;padding:.22rem .45rem;line-height:1.25;box-shadow:0 0 0 1px #9f8254;text-align:center}
+.council-person small{display:block;font-size:.73rem}
+.council-person.speaking .cast-portrait{filter:drop-shadow(0 0 8px #e5ba76);transform:scale(1.12);transform-origin:bottom}
+.council-room.has-speaker .council-person:not(.speaking){filter:brightness(.76)}
+.seat-0{left:27%;top:13%}.seat-1{left:73%;top:13%}.seat-2{left:20%;top:32%}.seat-3{left:80%;top:32%}.seat-4{left:12%;top:53%}.seat-5{left:88%;top:53%}
+.council-voice,.council-report,.council-scene .character-scene{padding:1rem clamp(.75rem,3vw,2rem);margin:0;border-inline:0}
+.council-voice{border-block:1px solid #6e604f;background:#151f30}
+.council-voice strong,.council-report summary{color:#eac783}
+.council-voice p{margin:.25rem 0}
+.council-scene .stage-actions,.council-scene .decision-desk,.council-ability{margin:.8rem}
+.council-scene .meeting-steps{margin:0}
+.council-scene .character-scene .cast-portrait{width:clamp(88px,15vw,166px);aspect-ratio:.86}
+@media(max-width:540px){
+ .council-title{align-items:start;padding:.65rem;gap:.4rem}.council-title p{font-size:.72rem}
+ .council-room{height:296px;background-position:center top;background-size:auto 100%}
+ .council-chair{width:68px;top:8px}
+ .council-seats{inset:auto .45rem .45rem;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.4rem}
+ .council-person{width:auto;position:static;transform:none;background:#0d1828d9}
+ .council-person .cast-portrait{width:42px}
+ .council-person>span:last-child{width:100%;padding:.15rem .08rem;font-size:.72rem}
+ .council-room.has-speaker{height:157px}
+ .council-room.has-speaker .council-chair,.council-room.has-speaker .council-person .cast-portrait{display:none}
+ .council-room.has-speaker .council-person{min-height:44px;align-content:center}
+ .council-scene .character-scene .cast-portrait{width:110px}
+ .council-scene .character-scene .speaker{flex:1}
+}
+.council-person .cast-portrait,.council-chair .cast-portrait,.council-scene .character-scene .cast-portrait{aspect-ratio:1}
+@media(min-width:541px){
+ .council-chair{top:18%;width:12%}
+ .seat-0,.seat-1{width:13%;top:25%}
+ .seat-2,.seat-3{width:14%;top:35%}
+ .seat-4,.seat-5{top:46%}
+}
+.cast-portrait{background-color:transparent;background-image:url('./council-cast.png');background-position:var(--cast-x,0%) var(--cast-y,0%);background-size:500% 300%;background-repeat:no-repeat}
+@media(min-width:541px){
+ .council-person{width:11.5%}
+ .seat-0{left:34%}.seat-1{left:66%}.seat-2{left:21%}.seat-3{left:79%}.seat-4{left:8%}.seat-5{left:92%}
+}
+.office-scene{background-image:url('./office-rebuild.jpg');background-position:center}
+.scene-press{background-image:url('./press-rebuild.jpg')}
+.government-president .political-backdrop{background-image:url('./president-rebuild.jpg')}
+.ballot-heading{background-image:linear-gradient(90deg,#101928eb,#10192851),url('./council-chamber.jpg')}
+.backgrounds .cast-portrait{width:min(100%,14rem);aspect-ratio:1;margin:0 auto 1rem;border:0}
+.backgrounds article{background:#ede5d7;border-top:2px solid #a98c54}
+@media(min-width:541px){.council-chair{top:29%}}
+#game{min-height:100svh}
+#main{width:min(1440px,100%);margin:auto;padding:clamp(.65rem,2vw,1.5rem) clamp(.65rem,2.5vw,2.25rem) 6rem}
+#main:has(.title-scene){width:auto;padding:0}
+.title-scene{min-height:100svh;display:grid;align-items:center;background:linear-gradient(90deg,#090e17ef 3%,#090e1780 56%,#090e1720),url('./office-rebuild.jpg') center/cover}
+.title-copy{padding:clamp(1.3rem,9vw,8rem);max-width:65rem}
+.title-copy .eyebrow{color:#e6c488}
+.title-copy h1{font-size:clamp(3rem,9vw,8rem);margin:.25rem 0 1rem;color:#fff2d5}
+.title-copy>p:not(.eyebrow){font-size:clamp(1rem,2.4vw,1.6rem)}
+.title-actions{display:grid;justify-items:start;gap:.65rem;margin-top:2rem}
+.title-actions button{min-width:11rem;text-align:left}
+#game-dock:not(:empty){position:fixed;z-index:10;inset:auto 0 0;background:#101a27f5;border-top:1px solid #766444;display:flex;align-items:center;justify-content:space-between;padding:.32rem clamp(.45rem,2vw,1.2rem);gap:.55rem}
+#game-dock .economic-hud{background:none;border:0;padding:0;margin:0;flex:1;min-width:0}
+#game-dock .hud-core{display:flex;align-items:center;flex-wrap:wrap;gap:.25rem .85rem}
+#game-dock .hud-core small:first-child{display:inline}
+#game-dock .hud-core button{min-height:33px;padding:.2rem .45rem}
+#game-dock .economic-hud details{display:none}
+#game-dock button[data-action=pause]{min-height:40px;white-space:nowrap}
+.game-step{margin-bottom:.45rem;border:0;padding:0;font-size:.78rem}
+.council-agenda{margin:.65rem 1rem;color:#f1d69e}
+.council-agenda summary{cursor:pointer;min-height:36px;padding:.25rem 0}
+.council-agenda ol{display:grid;gap:.3rem;max-width:18rem;padding-inline-start:1.25rem}
+.council-agenda li[aria-current] button{background:#e0bb78;color:#142030}
+.council-agenda button{width:100%;text-align:left}
+.game-document{width:min(890px,calc(100% - 24px));border-top:3px solid #a98c54}
+.overlay-toolbar{display:flex;justify-content:end;margin-bottom:.4rem}
+.pause-menu{max-width:370px;background:#132334;color:#f7eddc;border:1px solid #a98751}
+.pause-actions{display:grid;gap:.45rem}
+.pause-actions button{width:100%;text-align:left}
+.reduce-motion *{animation-duration:0s!important;animation-delay:0s!important;transition-duration:0s!important}
+@media(max-width:540px){.title-scene{background-position:61% center}.title-copy{align-self:end;padding-bottom:3rem}.title-actions button{min-height:44px}#game-dock .hud-core{font-size:.69rem;gap:.25rem .45rem}#game-dock .hud-core>span:first-child,#game-dock .hud-core>span:nth-child(4){display:none}#game-dock .hud-core button{margin:0}#game-dock button[data-action=pause]{padding:.45rem}.council-agenda summary{min-height:44px}}
+#game-dock .economic-hud details{display:block}
+#game-dock .economic-hud details:not([open]) summary{display:inline-block;margin:0;font-size:.7rem}
+#game-dock .hud-more{margin:.15rem 0;font-size:.72rem}
+@media(max-width:540px){#game-dock .hud-core>span:nth-child(4){display:inline}#game-dock .economic-hud details{display:none}}
+body{font-family:"Noto Sans KR","Malgun Gothic",system-ui,sans-serif}
+h1,.hero h1,.title-copy h1{font-family:inherit;letter-spacing:-.035em;font-weight:750}
+.front-page h1,.newspaper.front-page h2,.newspaper h2{font-family:"Noto Serif KR","Batang",serif;letter-spacing:-.025em}
+.press-option small{font-size:.92rem;line-height:1.6}
+.play-guide{margin-bottom:1rem}
+.play-guide li{margin:.55rem 0}
+.title-copy .title-wordmark{display:grid;justify-items:start;gap:.32em;color:#f0cc89;font-size:clamp(3.05rem,8vw,7.1rem);font-weight:900;letter-spacing:-.075em;line-height:1.03;text-shadow:0 .08em .28em #070b14}
+.title-wordmark small{color:#fff0ce;font-size:.14em;letter-spacing:.24em;font-weight:700}
+.watch-close{font-weight:750}
+@media(max-width:540px){.title-copy .title-wordmark{font-size:clamp(2.65rem,11vw,3.55rem)}}
+
+
+.title-korean{display:flex;gap:.24em;white-space:nowrap;text-shadow:0 2px 0 #76552f,0 5px 24px #070b14}
+.title-korean span:first-child{color:#ffe4ad}
+.title-korean span:last-child{color:#e9be71}
+.title-wordmark small{font-size:clamp(.68rem,1.55vw,1.15rem);letter-spacing:.12em;text-shadow:0 2px 8px #070b14}
+@font-face{font-family:"Pretendard Game";src:url('./pretendard.woff2') format('woff2');font-weight:45 920;font-display:swap}
+@font-face{font-family:"Noto Serif Game";src:url('./noto-serif-kr.woff2') format('woff2');font-weight:200 900;font-display:swap}
+@font-face{font-family:"Paperlogy Game";src:url('./paperlogy.woff2') format('woff2');font-weight:700;font-display:swap}
+:root{
+ --type-ui:"Pretendard Game","Malgun Gothic",sans-serif;
+ --type-serif:"Noto Serif Game","Batang",serif;
+ --type-title:var(--type-serif);
+ --type-number:var(--type-ui);
+ --type-title-weight:800;
+ --type-title-tracking:-.06em;
+ --type-heading-weight:750;
+ --type-dialogue:clamp(1.06rem,1.3vw,1.22rem);
+ --type-dialogue-leading:1.68;
+ --type-caption:.81rem;
+ --type-space:clamp(.75rem,1.8vw,1.35rem);
+}
+:root[data-type=b]{--type-title:"Paperlogy Game",var(--type-ui);--type-number:"Paperlogy Game",var(--type-ui);--type-title-weight:700;--type-heading-weight:700;--type-title-tracking:-.03em;--type-dialogue-leading:1.62}
+:root[data-type=c]{--type-title-weight:900;--type-heading-weight:890;--type-title-tracking:-.085em;--type-dialogue-leading:1.8}
+body,button,input,select{font-family:var(--type-ui)}
+h1,.hero h1,.council-title h1,.title-copy .title-wordmark{font-family:var(--type-title);font-weight:var(--type-heading-weight);word-break:keep-all;overflow-wrap:anywhere}
+.title-copy .title-wordmark{font-size:clamp(3rem,9vw,8.4rem);font-weight:var(--type-title-weight);letter-spacing:var(--type-title-tracking);line-height:1.08;gap:.32em;margin:.45rem 0 1.4rem}
+.title-korean{gap:.20em}
+.title-wordmark small{font-family:var(--type-ui);font-size:clamp(.68rem,1.25vw,1.05rem);font-weight:590;letter-spacing:.14em}
+.title-actions button{font-size:1rem;font-weight:650;letter-spacing:.01em}
+.eyebrow,.council-title .eyebrow{font-weight:650;letter-spacing:.095em}
+.council-person strong,.character-scene .speaker h2,.press-question h2{font-family:var(--type-ui);font-weight:650}
+.council-voice p,.character-scene blockquote,.press-question>p,.government-document blockquote,.press-transcript blockquote{font-size:var(--type-dialogue);line-height:var(--type-dialogue-leading);font-weight:430;letter-spacing:-.012em;word-break:keep-all;overflow-wrap:anywhere}
+.press-question h2,.character-scene .speaker h2{color:inherit;font-size:1.03rem;letter-spacing:.01em}
+.press-option strong{font-weight:650}
+.press-option small,.character-scene .choice label{font-size:clamp(1rem,1.1vw,1.12rem);line-height:1.65;font-weight:440}
+.press-option{padding-block:.8rem;min-height:48px;border-bottom:1px solid #d8d0c1}
+.press-transcript blockquote{background:#e6efec}
+.metric strong,.watch-hero strong,.watch-probabilities strong,.ballot-rate strong,.front-highlight strong,.hud-core strong,.forecast-choices strong,.goal-number strong{font-family:var(--type-number);font-variant-numeric:tabular-nums;font-weight:730;letter-spacing:-.045em;white-space:nowrap}
+.table,.score-trend p,.watch-pressure{font-variant-numeric:tabular-nums}
+.watch-hero strong{font-weight:780;line-height:.97}
+.watch-probabilities strong{font-size:1.15rem}
+.ballot-rate strong{font-size:clamp(1.5rem,3vw,2.4rem)}
+.office-document h2,.game-document .play-guide h1,.scorecard h2,.council-report h2{font-family:var(--type-title);font-weight:var(--type-heading-weight)}
+.office-document .document-meta{font-size:var(--type-caption);color:#695432;letter-spacing:.08em;border-bottom:1px solid #cdbda2;padding-bottom:.7rem}
+.office-document .grid>.panel{border:0;border-top:2px solid #796449;padding:var(--type-space) 0}
+.front-page h1,.newspaper.front-page h2,.newspaper h2{font-family:var(--type-serif);font-weight:880;line-height:1.22;letter-spacing:-.06em}
+.front-page .front-story{font-family:var(--type-serif);font-weight:480;font-size:1rem;line-height:1.85}
+.front-deck,.front-page header,.front-page aside,.front-page footer{font-family:var(--type-ui)}
+:root[data-type=c] .title-wordmark small{letter-spacing:.22em;border-top:1px solid #ac8750;padding-top:.7em}
+:root[data-type=c] .press-question>p,:root[data-type=c] .character-scene blockquote{border-inline-start:3px double #ab8e5b;padding-inline-start:.8rem}
+:root[data-type=b] .title-wordmark small{letter-spacing:.07em}
+@media(prefers-reduced-motion:no-preference){:root:not(.reduce-motion) .council-title h1,:root:not(.reduce-motion) .office-caption h1,:root:not(.reduce-motion) .political-backdrop~h1{animation:scene-type-in .24s ease-out both}}
+@keyframes scene-type-in{from{opacity:.45;translate:0 .12rem}to{opacity:1;translate:0 0}}
+@media(max-width:540px){.title-copy .title-wordmark{font-size:clamp(2.68rem,12vw,4rem)}.press-question>p,.character-scene blockquote,.government-document blockquote{font-size:1.06rem}.front-page .front-story{font-size:.96rem}}
+#game-dock .hud-more{display:flex;gap:.2rem .85rem;line-height:1.4;margin-top:.3rem}
+#game-dock .hud-more>span{white-space:nowrap}
+#game-dock .hud-gdp{color:#d7c5a8}
+@media(max-width:540px){
+ #main:not(:has(.title-scene)){padding-bottom:9rem}
+ #game-dock .hud-more{gap:.22rem .55rem;font-size:.69rem}
+ #game-dock .hud-more>span{display:inline-flex;gap:.2em}
+}
