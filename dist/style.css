@@ -395,3 +395,30 @@ h1,.hero h1,.council-title h1,.title-copy .title-wordmark{font-family:var(--type
 .scenario-badge{background:var(--gold);color:#101c2b;font-weight:700;padding:2px 8px;font-size:0.75rem;border-radius:2px}
 .scenario-random-card{border:2px dashed #938673;background:#f5f0e4}
 
+.dialogue-header{align-items:flex-start}
+.dialogue-header .speaker{display:flex;align-items:center;gap:.85rem;flex:1;min-width:0}
+.speaker-info{display:flex;flex-direction:column;gap:.35rem}
+.speaker-title{display:flex;align-items:center;gap:.55rem}
+.speaker-title h2{margin:0;font-size:1.25rem;color:#fff1d8}
+.role-tag{background:#22374e;color:#cce0f5;border:1px solid #4a6382;font-size:.75rem;padding:2px 7px;border-radius:3px;font-weight:600}
+.speaker-badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+.badge-item{background:#0e1b2b;border:1px solid #374d68;padding:2px 7px;border-radius:3px;font-size:.8rem;color:#fff1d8;display:inline-flex;align-items:center}
+.badge-item small{color:#9cb5cf;margin-right:4px}
+.badge-item strong{color:#f5ede0;font-weight:600}
+
+.stance-card{background:#0e1a29;border:1px solid #7c6846;border-radius:4px;padding:.85rem 1rem;margin:.75rem 0}
+.stance-header{display:flex;flex-wrap:wrap;align-items:center;gap:.55rem .85rem;margin-bottom:.65rem;padding-bottom:.55rem;border-bottom:1px dashed #30445c}
+.vote-badge{padding:3px 9px;border-radius:3px;font-size:.85rem;font-weight:650;letter-spacing:-.01em}
+.vote-badge.vote-hike{background:#58201a;color:#ffbeaf;border:1px solid #9e3f32}
+.vote-badge.vote-cut{background:#163d54;color:#a3e4ff;border:1px solid #2f7fa5}
+.vote-badge.vote-hold{background:#3b311e;color:#ffe199;border:1px solid #8f7943}
+.principle-badge{background:#142436;border:1px solid #455d78;color:#eed093;font-size:.8rem;padding:2px 8px;border-radius:3px}
+.principle-badge small{color:#a9bfd6;margin-right:4px}
+.evidence-badge{background:#142436;border:1px solid #455d78;color:#a5d8ff;font-size:.8rem;padding:2px 8px;border-radius:3px}
+.evidence-badge small{color:#a9bfd6;margin-right:4px}
+
+.stance-statement .statement-label{font-size:.74rem;color:#d5be96;letter-spacing:.04em;margin-bottom:4px;font-weight:600}
+.stance-statement blockquote{margin:0;padding:.65rem .85rem;background:#09121d;border-inline-start:3px solid #b59458;color:#fdf4e7;font-size:1rem;line-height:1.65;border-radius:0 3px 3px 0}
+.member-history{font-size:.82rem;margin:.4rem 0 .6rem}
+.persuasion-agreed{background:#15342a;border:1px solid #2e7a5b;color:#a7f2cb;padding:.65rem;border-radius:3px;margin:.65rem 0}
+
