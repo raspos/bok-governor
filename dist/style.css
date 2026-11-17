@@ -431,3 +431,8 @@ h1,.hero h1,.council-title h1,.title-copy .title-wordmark{font-family:var(--type
 .site-footer a{color:#b38c4d;text-decoration:underline;text-underline-offset:2px}
 .site-footer a:hover{color:#dfc494}
 
+.footer-views{margin-left:.45rem;font-variant-numeric:tabular-nums;color:#9b8c75}
+.footer-views strong{color:#c49e5d;font-weight:600}
+.title-footer .footer-views{color:#9e927c}
+.title-footer .footer-views strong{color:#ffd88d}
+
