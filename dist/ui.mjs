@@ -31,6 +31,7 @@ let titleOpen=game.phase==='setup'||game.phase==='scenario'||globalThis.performa
 let savedTerm=(game.phase==='setup'||game.phase==='scenario')?null:game;
 try{document.documentElement?.classList.toggle('reduce-motion',localStorage.getItem('bok-reduce-motion')==='1');}catch{}
 let selectedMember=null,argumentMethod=null,meetingStep=game.context?.uiStep??0;
+let speakingTurnIndex=0,speakingAutoPlay=true,speakingTimer=null;
 const alternativeTo=change=>moves.find(d=>d!==change);
 let focus=game.context?.draft?.focus??'prices', forecast=game.context?.draft?.forecast??'하락', proposal=game.context?.draft?.proposal??0, alternative=alternativeTo(game.records.at(-1)?.change), metric='inflation', saveMessage='';
 const value=(k,n)=>n.toLocaleString('ko-KR',{maximumFractionDigits:k==='fx'?0:2,minimumFractionDigits:k==='fx'||k==='stress'?0:2})+metrics[k][1];
@@ -369,12 +370,245 @@ function showBallot(record){
 function memberPortrait(id){
  return '<span class="member-portrait cast-portrait" style="--cast-x:'+((id%5)*25)+'%;--cast-y:'+(Math.floor(id/5)*50)+'%" aria-hidden="true"></span>';
 }
+
+function startSpeakingTimer(){
+ stopSpeakingTimer();
+ if(typeof window==='undefined'||!window.setInterval)return;
+ if(game.phase!=='meeting'||selectedMember!==null||!speakingAutoPlay)return;
+ speakingTimer=setInterval(()=>{
+  advanceSpeakingTurn(1);
+ },5000);
+}
+function stopSpeakingTimer(){
+ if(speakingTimer){
+  clearInterval(speakingTimer);
+  speakingTimer=null;
+ }
+}
+function advanceSpeakingTurn(delta=1){
+ const committee=getCommittee(game);
+ if(!committee.length)return;
+ speakingTurnIndex=(speakingTurnIndex+delta+committee.length)%committee.length;
+ updateSpeakingDom();
+}
+function updateSpeakingDom(){
+ if(typeof document==='undefined')return;
+ const turnEl=document.querySelector('#council-speech-turn');
+ const cue=['조사국 보고를 검토하고 이번 회의에서 우선할 지표를 정합니다.','어느 지표를 우선하시겠습니까?','회의 자료에서 금리별 예상 경로를 대조합니다.','좌석을 선택해 위원의 근거를 듣습니다.','의견이 다른 위원에게 근거를 제시할 수 있습니다.','총재의 금리안을 제출하고 표결을 공개합니다.'][meetingStep];
+ if(turnEl){
+  turnEl.outerHTML=councilSpeechTurnPanel(cue);
+ }
+ document.querySelectorAll('#members .council-person').forEach((el,i)=>{
+  const isSpeaking=selectedMember!==null?false:i===speakingTurnIndex;
+  el.classList.toggle('speaking',isSpeaking);
+  el.classList.toggle('speaking-turn',isSpeaking);
+ });
+}
+
+function getMemberSpeechData(member,opinion,state,macro){
+ const vote=opinion.vote;
+ const isHike=vote>0;
+ const isCut=vote<0;
+ const isHold=vote===0;
+ const principle=policyPrinciple(member.id);
+ const fxNum=Math.round(state.fx).toLocaleString('ko-KR');
+ const infl=state.inflation.toFixed(2);
+ const exp=state.expectations.toFixed(2);
+ const gdp=macro.gdpForecast.toFixed(1);
+ const gap=macro.gdpGap.toFixed(1);
+ const debt=state.debt.toFixed(1);
+ const stress=Math.round(state.stress);
+
+ let claimQuote='';
+ if(opinion.persuaded){
+  claimQuote='“총재 제안('+label(vote)+')의 취지를 수용하여 이번 회의에서는 입장을 변경해 '+label(vote)+'을 지지합니다.”';
+ } else if(isHike){
+  if(member.id===0||member.id===6){
+   claimQuote='“물가 안정과 기대인플레이션 안착을 위해 기준금리를 0.25%p 인상해야 합니다.”';
+  } else if(member.id===3||member.id===10){
+   claimQuote='“원화값 급락과 수입물가 전이 위험을 막기 위해 기준금리를 0.25%p 인상해야 합니다.”';
+  } else if(member.id===2||member.id===9){
+   claimQuote='“가계부채 누증과 자산시장 불균형을 차단하기 위해 기준금리를 0.25%p 인상해야 합니다.”';
+  } else {
+   claimQuote='“물가 오름세와 대외 불확실성에 선제 대응하여 기준금리를 0.25%p 인상해야 합니다.”';
+  }
+ } else if(isCut){
+  if(member.id===1||member.id===11){
+   claimQuote='“내수 침체 방어와 고용·취약계층 보호를 위해 기준금리를 0.25%p 인하해야 합니다.”';
+  } else if(member.id===7){
+   claimQuote='“차주의 원리금 상환 부담을 덜고 민간소비를 살리기 위해 기준금리를 0.25%p 인하해야 합니다.”';
+  } else if(member.id===8){
+   claimQuote='“기업 설비투자와 잠재성장률 회복을 뒷받침하기 위해 기준금리를 0.25%p 인하해야 합니다.”';
+  } else {
+   claimQuote='“성장세 둔화와 마이너스 GDP갭에 대응하여 기준금리를 0.25%p 인하해야 합니다.”';
+  }
+ } else {
+  if(member.id===2||member.id===9){
+   claimQuote='“금융안정과 실물경기 간 상충을 고려하여 기준금리를 현 '+value('rate',state.rate)+' 수준에서 동결해야 합니다.”';
+  } else if(member.id===4||member.id===5){
+   claimQuote='“기존 긴축의 파급 시차와 대외 여건을 점검하며 기준금리를 현 수준에서 동결해야 합니다.”';
+  } else if(member.id===1||member.id===7){
+   claimQuote='“물가 불안과 내수 부진이 맞서는 만큼 기준금리를 동결하고 상황을 지켜봐야 합니다.”';
+  } else {
+   claimQuote='“대내외 경제 불확실성을 감안하여 이번 회의에서는 기준금리를 동결하는 것이 합당합니다.”';
+  }
+ }
+
+ let explanation='';
+ if(opinion.persuaded){
+  explanation='“'+principle+'” 원칙을 중시하지만, 총재께서 제시하신 경제지표와 정책 논거를 깊이 검토했습니다. 현재 '+opinion.detail+' 상황에서 통화정책의 일관성과 거시경제 안정을 위해 총재의 제안에 표를 모으기로 결단했습니다.';
+ } else {
+  switch(member.id){
+   case 0:
+    explanation=isHike
+     ?'“'+principle+'” 원칙에 따릅니다. 소비자물가 상승률이 '+infl+'%이고 기대인플레이션도 '+exp+'%로 목표치(2.0%)를 웃돌고 있습니다. 기대물가가 굳어지면 나중에 더 큰 폭의 긴축 비용을 치러야 하므로, 이번 회의에서 선제적으로 0.25%p 인상해야 합니다.'
+     :'“'+principle+'” 원칙에 따라 물가를 보고 있습니다. 현재 물가상승률('+infl+'%)이 점차 안정 범위에 근접하고 있어, 기존 긴축의 물가 둔화 효과를 조금 더 확인하며 동결하는 것이 적절합니다.';
+    break;
+   case 1:
+    explanation=isCut
+     ?'“'+principle+'” 원칙을 견지합니다. 실질 GDP 성장률 전망이 '+gdp+'%에 그치고 GDP갭률도 '+gap+'%로 마이너스 상태입니다. 고금리 장기화로 자영업자와 청년층 일자리가 위축되고 내수가 얼어붙고 있어, 신속한 0.25%p 인하로 숨통을 틔워야 합니다.'
+     :'“'+principle+'” 입장에서 고용과 내수를 살피고 있습니다. 성장률 전망('+gdp+'%)이 둔화되고 있으나 물가('+infl+'%)와 환율('+fxNum+'원) 불안이 남아있는 상황에서 섣부른 인하는 서민 부담을 키울 수 있어 일단 동결하고 지표를 관찰해야 합니다.';
+    break;
+   case 2:
+    explanation=isHike
+     ?'“'+principle+'” 원칙에 따라 금융 불균형을 경계합니다. 가계신용 증가율이 '+debt+'%, 금융위험 지수가 '+stress+'점으로 누적된 부채 리스크가 큽니다. 금리를 올려 자산시장 과열과 추가 차입 유인을 억제하는 정책 신호를 명확히 보내야 합니다.'
+     :'“'+principle+'” 관점에서 금융시장 안정성을 진단했습니다. 가계부채 증가율('+debt+'%)이 높으나 급격한 금리 인상은 취약차주의 신용경색을 유발할 수 있습니다. 미시적 금융규제와 거시정책의 파급 효과를 지켜보며 동결로 대응하는 것이 안전합니다.';
+    break;
+   case 3:
+    explanation=isHike
+     ?'“'+principle+'” 원칙을 가장 무겁게 봅니다. 현재 원/달러 환율이 '+fxNum+'원대까지 상승하여 수입물가와 외채 조달비용을 끌어올리고 있습니다. 대외 금리차와 환율 변동성을 방치하면 금융 불안으로 번질 수 있어 이번 회의에서 0.25%p 인상으로 원화가치를 방어해야 합니다.'
+     :'“'+principle+'” 측면에서 외환시장 동향을 점검하고 있습니다. 환율('+fxNum+'원) 변동성이 높지만 주요국 통화정책 전환 기대와 외환보유액을 고려할 때, 성급한 금리 변동보다는 시장 개입과 거시 지표 추이를 지켜보며 동결하는 것이 타당합니다.';
+    break;
+   case 4:
+    explanation=isHold
+     ?'“'+principle+'” 판단을 적용했습니다. 현재 물가상승률('+infl+'%)과 성장률 전망('+gdp+'%, GDP갭 '+gap+'%)이 서로 엇갈리는 복합 국면입니다. 추가 긴축은 설비투자를 꺾고 조기 완화는 물가를 자극하므로, 균형을 잡고 상황을 점검하는 동결이 가장 합리적인 선택입니다.'
+     :isHike
+     ?'물가('+infl+'%) 상승세가 산업 전반의 원가 부담과 기대심리로 번지는 것을 막기 위해 선제적으로 금리를 0.25%p 인상해야 합니다.'
+     :'제조업 가동률과 기업 설비투자가 위축되고 있으므로 금리를 0.25%p 인하해 산업 경쟁력과 경제 활력을 지지해야 합니다.';
+    break;
+   case 5:
+    explanation=isHike
+     ?'“'+principle+'” 원칙을 숙고했습니다. 과거 단행된 금리 인상의 파급 효과가 나타나고 있으나 기대인플레이션('+exp+'%)이 여전히 높습니다. 중앙은행의 물가안정 신뢰를 지키고 중기적 정책 여력을 선제적으로 확보하기 위해 추가 0.25%p 인상이 불가피합니다.'
+     :'“'+principle+'” 관점에서 볼 때, 지금까지 누적된 긴축 효과가 향후 수개월간 시차를 두고 실물경제에 반영될 것입니다. 정책 시차를 감안하지 않은 추가 조치는 과잉 긴축이 될 수 있으므로 이번 회의는 동결하고 파급 효과를 평가해야 합니다.';
+    break;
+   case 6:
+    explanation=isHike
+     ?'“'+principle+'” 원칙에 따라 채권시장과 인플레이션 리스크를 봅니다. 기대물가('+exp+'%)가 안착되지 않으면 시장금리와 자금조달 비용이 왜곡됩니다. 채권시장에 단호한 물가안정 신호를 주기 위해 선제적 0.25%p 금리 인상이 필수적입니다.'
+     :'인플레이션 압력('+infl+'%)을 주시하되, 시중 유동성과 채권시장 안정성을 고려하여 이번에는 금리를 현 수준에서 동결하고 시장 반응을 지켜보고자 합니다.';
+    break;
+   case 7:
+    explanation=isCut
+     ?'“'+principle+'” 원칙을 최우선합니다. 가계대출 금리가 높은 상황에서 서민·취약차주의 원리금 상환 부담이 한계에 달해 민간소비가 얼어붙고 있습니다. 금리를 0.25%p 낮춰 실질 가처분소득을 보전하고 내수 침체 악순환을 끊어야 합니다.'
+     :'차주들의 원리금 상환 부담을 깊이 우려하고 있습니다. 다만 물가('+infl+'%)와 환율('+fxNum+'원) 지표가 여전히 불안하므로, 당장은 금리를 동결하되 향후 물가가 안정되는 대로 신속히 완화 기조로 전환해야 합니다.';
+    break;
+   case 8:
+    explanation=isCut
+     ?'“'+principle+'” 입장에서 국가 경제의 미래를 걱정합니다. 고금리로 인해 기업의 R&D와 설비투자 계획이 연쇄 축소되고 있습니다. 잠재성장률이 훼손되기 전에 선제적인 0.25%p 금리 인하로 장기 성장 기반을 마련해야 합니다.'
+     :'기업의 장기 투자 여력을 점검하고 있습니다. 물가('+infl+'%)와 대외 리스크가 남아있는 현시점에서는 섣부른 변동보다는 금리를 동결하고 거시 안정성을 유지하는 것이 기업 경영 계획 수립에 더 유리합니다.';
+    break;
+   case 9:
+    explanation=isCut
+     ?'“'+principle+'” 원칙에 따릅니다. 금융위험 지수가 '+stress+'점으로 경계 수준이며 한계기업의 부실 위험이 커지고 있습니다. 자금시장 경색이 시스템 리스크로 비화하기 전에 선제적인 0.25%p 금리 인하와 유동성 지원이 병행되어야 합니다.'
+     :'“'+principle+'” 관점에서 금융시장 상황을 진단했습니다. 금융위험 지수('+stress+'점)가 높지만, 단순 금리 인하보다는 미시적 유동성 조치로 대응하면서 기준금리는 동결하여 정책 효과를 분리 검증해야 합니다.';
+    break;
+   case 10:
+    explanation=isHike
+     ?'“'+principle+'” 입장을 강조합니다. 원/달러 환율이 '+fxNum+'원까지 치솟아 수입물가를 자극하고 있습니다. 글로벌 에너지 가격과 주요국 금리 환경을 볼 때, 환율발 물가 전이 위험을 차단하기 위한 0.25%p 금리 인상이 시급합니다.'
+     :'유가와 환율('+fxNum+'원) 추이를 엄밀히 살피고 있습니다. 대외 충격이 점진적으로 완화될 가능성이 있으므로 이번 회의에서는 금리를 동결하고 국제금융시장 흐름을 추가 확인하는 것이 합당합니다.';
+    break;
+   case 11:
+    explanation=isCut
+     ?'“'+principle+'” 원칙을 대변합니다. 지방 중소기업들의 대출 이자 부담이 가중되고 공장 가동률과 지역 고용이 급격히 악화되고 있습니다. 지역경제가 무너지지 않도록 금리를 0.25%p 인하해 숨통을 틔워주어야 합니다.'
+     :'지역 상권과 중소기업의 고통을 절감하고 있습니다. 다만 물가 오름세('+infl+'%)가 서민 생활물가에 미칠 악영향을 고려하여, 이번 회의는 동결로 인내하고 민생 대책과의 정책 공조를 모색해야 합니다.';
+    break;
+   default:
+    explanation=opinion.detail.endsWith('.')||opinion.detail.endsWith('다')
+     ?opinion.detail
+     :'현재 '+opinion.detail+' 상황입니다. '+opinion.reason+' 측면에서 이번 회의는 '+label(opinion.vote)+'이(가) 타당하다고 봅니다.';
+  }
+ }
+ return {claimQuote,explanation};
+}
+
+function councilSpeechTurnPanel(cue=''){
+ const s=game.state;
+ const prev=game.records?.at(-1)?.origin??null;
+ const macro=derivedMacro(s,prev);
+ const committee=getCommittee(game);
+ const ops=opinions(s,focus,proposal,forecast,game.market,game);
+ if(!committee.length||!ops.length)return '';
+
+ const safeIdx=Math.max(0,Math.min(speakingTurnIndex,committee.length-1));
+ const member=committee[safeIdx];
+ const opinion=ops[safeIdx];
+ const vote=opinion.vote;
+ const voteType=vote>0?'hike':vote<0?'cut':'hold';
+ const voteBadgeClass=vote>0?'badge-hike':vote<0?'badge-cut':'badge-hold';
+ const principle=policyPrinciple(member.id);
+ const speechData=getMemberSpeechData(member,opinion,s,macro);
+
+ const memberTabs=committee.map((m,i)=>{
+  const o=ops[i];
+  const vType=o.vote>0?'hike':o.vote<0?'cut':'hold';
+  const active=i===safeIdx?' active-speaker':'';
+  return '<button type="button" class="speaker-tab-pill'+active+' '+vType+'" data-action="speech-turn-'+i+'" title="'+m.name+' '+o.role+' 발언 듣기">'
+   +'<span class="pill-idx">'+(i+1)+'</span> '
+   +'<span class="pill-name">'+m.name+'</span> '
+   +'<span class="pill-vote">'+label(o.vote)+'</span>'
+   +'</button>';
+ }).join('');
+
+ return '<section class="council-voice council-speech-turn" id="council-speech-turn" aria-label="금통위원 순번 발언">'
+  +'<div class="speech-top-bar">'
+  +'<div class="speech-title-box">'
+  +'<span class="live-dot" aria-hidden="true"></span>'
+  +'<span class="speech-header-title">금통위원 순번 발언 <strong>'+(safeIdx+1)+'/'+committee.length+'</strong></span>'
+  +'<span class="speech-timer-tag '+(speakingAutoPlay?'is-running':'is-paused')+'">'+(speakingAutoPlay?'5초 자동 전환 중':'일시정지됨')+'</span>'
+  +'</div>'
+  +'<div class="speech-nav-controls">'
+  +'<button type="button" class="speech-ctrl-btn" data-action="speech-prev" title="이전 위원 발언">◀ 이전</button>'
+  +'<button type="button" class="speech-ctrl-btn speech-toggle-btn '+(speakingAutoPlay?'btn-pause':'btn-play')+'" data-action="speech-toggle" title="5초 자동 전환 일시정지 또는 재생">'
+  +(speakingAutoPlay?'⏸ 5초 정지':'▶ 5초 재생')
+  +'</button>'
+  +'<button type="button" class="speech-ctrl-btn" data-action="speech-next" title="다음 위원 발언">다음 ▶</button>'
+  +'<button type="button" class="speech-ctrl-btn speech-persuade-btn" data-action="dialogue-'+member.id+'" title="'+member.name+' 위원과 1:1 대화 및 설득">1:1 설득 💬</button>'
+  +'</div>'
+  +'</div>'
+  +'<div class="speech-timer-track"><div class="speech-timer-bar '+(speakingAutoPlay?'animating':'paused')+'"></div></div>'
+  +'<div class="speaker-tabs-row">'+memberTabs+'</div>'
+  +'<div class="speech-dialogue-content">'
+  +'<div class="speech-speaker-profile">'
+  +memberPortrait(member.id)
+  +'<div class="speech-speaker-details">'
+  +'<div class="speaker-name-row"><strong class="speaker-name">'+member.name+'</strong> <span class="role-badge">'+opinion.role+'</span> <span class="speaker-vote-tag '+voteBadgeClass+'">'+label(opinion.vote)+' 지지'+(opinion.persuaded?' · 의견 수정':'')+'</span></div>'
+  +'<div class="speaker-meta-row"><span class="meta-tag">전문: '+member.career+'</span> · <span class="meta-tag">성향: '+member.philosophy+'</span></div>'
+  +'<div class="speaker-principle-row"><span class="meta-principle">원칙: “'+principle+'”</span></div>'
+  +'</div>'
+  +'</div>'
+  +'<div class="speech-bubble-box">'
+  +'<div class="speech-claim-block">'
+  +'<span class="claim-label">주장</span>'
+  +'<div class="claim-body"><strong class="claim-stance '+voteType+'">'+speechData.claimQuote+'</strong></div>'
+  +'</div>'
+  +'<div class="speech-explanation-block">'
+  +'<span class="explanation-label">설명</span>'
+  +'<div class="explanation-body"><blockquote class="explanation-quote">'+speechData.explanation+'</blockquote></div>'
+  +'</div>'
+  +'</div>'
+  +'</div>'
+  +(cue?'<div class="speech-stage-cue"><small class="muted"><strong>'+(['조사국','총재','조사국','의사국','의사국','의사국'][meetingStep])+' 안내:</strong> '+cue+'</small></div>':'')
+  +'</section>';
+}
+
 function councilSeats(){
  const governor=12+Math.max(0,['scholar','official','politician'].indexOf(game.background));
  return '<div class="council-room'+(selectedMember!==null?' has-speaker':'')+'"><div class="council-chair">'+memberPortrait(governor)+'<strong>총재</strong></div><div class="council-seats" id="members">'+members()+'</div></div>';
 }
 function members(){
- return opinions(game.state,focus,proposal,forecast,game.market,game).map((v,i)=>'<button class="council-person seat-'+i+(selectedMember===v.id?' speaking':'')+'" type="button" data-action="member-'+v.id+'" aria-pressed="'+(selectedMember===v.id)+'">'+memberPortrait(v.id)+'<span><strong>'+v.name+'</strong> <small>'+label(v.vote)+(v.persuaded?' · 의견 수정':'')+'</small></span></button>').join('');
+ return opinions(game.state,focus,proposal,forecast,game.market,game).map((v,i)=>{
+  const isSpeaking=selectedMember!==null?selectedMember===v.id:i===speakingTurnIndex;
+  return '<button class="council-person seat-'+i+(isSpeaking?' speaking':'')+(i===speakingTurnIndex&&selectedMember===null?' speaking-turn':'')+'" type="button" data-action="member-'+v.id+'" aria-pressed="'+(selectedMember===v.id)+'" title="'+v.name+' 위원과 1:1 대화">'+memberPortrait(v.id)+'<span><strong>'+v.name+'</strong> <small>'+label(v.vote)+(v.persuaded?' · 의견 수정':'')+'</small></span></button>';
+ }).join('');
 }
 const meetingSteps=['경제 상황','수치 목표','금리안 비교','위원 입장','설득과 수정','최종 의결'];
 function stepButton(n,title){
@@ -391,7 +625,7 @@ function meeting(){
  const dossier=meetingStep===0?'<details class="council-report"><summary>조사국 경제보고서 펼치기</summary>'+newspaperAgenda()+goalOutcome(game.records.at(-1))+indicators(s)+watchForecastPanel(game.context?.watch??currentWatch(game),null,true)+'</details>':'';
  const cue=['조사국 보고를 검토하고 이번 회의에서 우선할 지표를 정합니다.','어느 지표를 우선하시겠습니까?','회의 자료에서 금리별 예상 경로를 대조합니다.','좌석을 선택해 위원의 근거를 듣습니다.','의견이 다른 위원에게 근거를 제시할 수 있습니다.','총재의 금리안을 제출하고 표결을 공개합니다.'][meetingStep];
  return '<section class="council-scene"><header class="council-title"><div><div class="eyebrow">'+dates[game.turn]+' · 금융통화위원회</div><h1>금통위 회의실</h1></div><p>기준금리 <strong>'+value('rate',s.rate)+'</strong></p></header>'+councilSeats()+
- (selectedMember!==null?dialoguePanel():'<div class="council-voice"><strong>'+(['조사국','총재','조사국','의사국','의사국','의사국'][meetingStep])+'</strong><p>'+cue+'</p></div>')+
+ (selectedMember!==null?dialoguePanel():councilSpeechTurnPanel(cue))+
  '<details class="council-agenda"><summary>회의 안건 · '+(meetingStep+1)+'/6 · '+meetingSteps[meetingStep]+'</summary><ol>'+meetingSteps.map((title,n)=>'<li '+(n===meetingStep?'aria-current="step"':'')+'>'+stepButton(n,(n+1)+'. '+title)+'</li>').join('')+'</ol></details>'+dossier+
  panel(1,goalPanel())+
  '<form id="decision" class="panel decision-desk">'+panel(2,'<fieldset><legend>총재가 제안할 기준금리</legend>'+radio('proposal',proposalOptions,proposal)+'</fieldset><div id="policy-preview" aria-live="polite">'+policyPreview()+'</div>')+
@@ -953,6 +1187,11 @@ function render(focusMain=false){
  main.innerHTML=titleOpen?titleScreen():step+(saveMessage?'<p role="status">'+saveMessage+'</p>':'')+scenes[game.phase]()+siteFooter();
  if(dock)dock.innerHTML=playing?economicHud()+button('pause','메뉴',false):'';
  if(focusMain)main.focus();
+ if(game.phase==='meeting'&&selectedMember===null&&speakingAutoPlay){
+  startSpeakingTimer();
+ } else {
+  stopSpeakingTimer();
+ }
 }
 document.addEventListener('click',e=>{
  const b=e.target.closest('button');
@@ -996,13 +1235,45 @@ document.addEventListener('click',e=>{
  meetingStep=Number(action.slice(5));selectedMember=null;argumentMethod=null;
  commit({...game,context:{...game.context,uiStep:meetingStep}});return;
  }
- if(action.startsWith('member-')){meetingStep=4;selectedMember=Number(action.slice(7));argumentMethod=null;render();document.querySelector('.dialogue')?.scrollIntoView?.({block:'nearest'});return;}
+ if(action==='speech-prev'){
+  advanceSpeakingTurn(-1);
+  if(speakingAutoPlay)startSpeakingTimer();
+  return;
+ }
+ if(action==='speech-next'){
+  advanceSpeakingTurn(1);
+  if(speakingAutoPlay)startSpeakingTimer();
+  return;
+ }
+ if(action==='speech-toggle'){
+  speakingAutoPlay=!speakingAutoPlay;
+  if(speakingAutoPlay)startSpeakingTimer();
+  else stopSpeakingTimer();
+  updateSpeakingDom();
+  return;
+ }
+ if(action.startsWith('speech-turn-')){
+  speakingTurnIndex=Number(action.slice(12));
+  if(speakingAutoPlay)startSpeakingTimer();
+  updateSpeakingDom();
+  return;
+ }
+ if(action.startsWith('dialogue-')){
+  meetingStep=4;
+  selectedMember=Number(action.slice(9));
+  argumentMethod=null;
+  stopSpeakingTimer();
+  render();
+  document.querySelector('.dialogue')?.scrollIntoView?.({block:'nearest'});
+  return;
+ }
+ if(action.startsWith('member-')){meetingStep=4;selectedMember=Number(action.slice(7));argumentMethod=null;stopSpeakingTimer();render();document.querySelector('.dialogue')?.scrollIntoView?.({block:'nearest'});return;}
  if(action==='scorecard'){showScorecard(b);return;}
  if(action==='office-report'||action==='office-phone'){showOfficeDocument(action,b);return;}
- if(action==='close-member'){const id=selectedMember;selectedMember=null;argumentMethod=null;render();document.querySelector('[data-action="member-'+id+'"]')?.focus();return;}
+ if(action==='close-member'){const id=selectedMember;selectedMember=null;argumentMethod=null;render();if(speakingAutoPlay)startSpeakingTimer();document.querySelector('[data-action="member-'+id+'"]')?.focus();return;}
  switch(action){
- case 'meeting':meetingStep=game.turn===0?0:1;{const next=begin(game);commit({...next,context:{...next.context,uiStep:meetingStep}});}break;
- case 'next':if(game.phase==='result'){commit(openFrontPage(game));break;} selectedMember=null;argumentMethod=null;focus='prices';forecast='하락';proposal=0;commit(onward(game));break;
+ case 'meeting':speakingTurnIndex=0;speakingAutoPlay=true;meetingStep=game.turn===0?0:1;{const next=begin(game);commit({...next,context:{...next.context,uiStep:meetingStep}});}break;
+ case 'next':stopSpeakingTimer();if(game.phase==='result'){commit(openFrontPage(game));break;} selectedMember=null;argumentMethod=null;focus='prices';forecast='하락';proposal=0;commit(onward(game));break;
  case 'review':document.querySelector('#comparison').scrollIntoView();break;
  case 'reset':titleOpen=true;render(true);break;
  }

@@ -88,3 +88,15 @@ test('front page newspaper headlines differentiate scenario outcomes after meeti
  assert.ok(paperStag.headline.length > 0);
  assert.notEqual(paperInf.headline, paperStag.headline);
 });
+
+test('meeting council has 5-second rotating member speeches with claim and explanation', async () => {
+ const fs = await import('fs');
+ const html = fs.readFileSync('play.html', 'utf8');
+ assert.ok(html.includes('council-speech-turn'));
+ assert.ok(html.includes('speechTimerFill'));
+ assert.ok(html.includes('speech-claim-block'));
+ assert.ok(html.includes('speech-explanation-block'));
+ assert.ok(html.includes('speech-nav-controls'));
+ assert.ok(html.includes('speech-timer-bar'));
+ assert.ok(html.includes('getMemberSpeechData'));
+});
