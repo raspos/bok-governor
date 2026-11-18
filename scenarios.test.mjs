@@ -99,4 +99,7 @@ test('meeting council has 5-second rotating member speeches with claim and expla
  assert.ok(html.includes('speech-nav-controls'));
  assert.ok(html.includes('speech-timer-bar'));
  assert.ok(html.includes('getMemberSpeechData'));
+ assert.ok(html.includes('getGovernorSpeechData'));
+ assert.ok(html.includes('gov-proposal-selector'));
+ assert.ok(html.includes('speech-voice-btn'));
 });

@@ -623,7 +623,25 @@ h1,.hero h1,.council-title h1,.title-copy .title-wordmark{font-family:var(--type
 .speech-stage-cue{margin-top:.55rem;padding-top:.45rem;border-top:1px dashed rgba(255,255,255,.12);font-size:.78rem;color:#a6b4c9}
 .council-person.speaking-turn .cast-portrait{filter:drop-shadow(0 0 10px #eac783) drop-shadow(0 0 2px #fff);transform:scale(1.14);transform-origin:bottom;transition:transform .25s ease,filter .25s ease}
 .council-person.speaking-turn>span:last-child{box-shadow:0 0 0 2px #eac783,0 0 8px rgba(234,199,131,.55);background:#192a40;color:#fff}
+.council-chair.speaking-turn .cast-portrait{filter:drop-shadow(0 0 12px #eac783) drop-shadow(0 0 4px #fff);transform:scale(1.15);transform-origin:bottom;transition:transform .25s ease,filter .25s ease}
+.council-chair.speaking-turn>strong{box-shadow:0 0 0 2px #eac783,0 0 10px rgba(234,199,131,.65);background:#192a40;color:#fff}
+
+.gov-proposal-selector{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;padding:.5rem .75rem;background:rgba(0,0,0,.35);border-radius:4px;border:1px solid #36475d;margin-bottom:.2rem}
+.gov-prop-label{font-size:.78rem;font-weight:700;color:#eac783}
+.gov-prop-buttons{display:flex;gap:6px;flex-wrap:wrap}
+.gov-prop-btn{background:#182537;border:1px solid #4a617d;color:#e2e8f0;border-radius:4px;padding:.3rem .65rem;font-size:.76rem;font-weight:600;cursor:pointer;transition:all .15s ease}
+.gov-prop-btn:hover{border-color:#eac783;background:#243750;color:#fff}
+.gov-prop-btn.selected.hike{background:#682020;border-color:#ff9999;color:#fff;box-shadow:0 0 8px rgba(255,100,100,.45)}
+.gov-prop-btn.selected.cut{background:#1c456e;border-color:#99ccff;color:#fff;box-shadow:0 0 8px rgba(100,180,255,.45)}
+.gov-prop-btn.selected.hold{background:#5c4720;border-color:#ffe099;color:#fff;box-shadow:0 0 8px rgba(255,220,100,.45)}
+
+.speech-voice-btn.voice-on{background:#234423;border-color:#66bb6a;color:#c8e6c9;font-weight:700;box-shadow:0 0 6px rgba(102,187,106,.4)}
+.speaker-tab-pill.gov-pill{background:#253347;border-color:#b89558;color:#ffe8b3}
+.speaker-tab-pill.gov-pill.active-speaker{background:#3b4e6d;border-color:#f0d5a4;box-shadow:0 0 8px rgba(240,213,164,.5);font-weight:800}
+.role-governor{background:#3b2d18;color:#fce4a6;border-color:#826532}
 @media(max-width:640px){
+.gov-proposal-selector{flex-direction:column;align-items:stretch}
+.gov-prop-buttons{flex-direction:column}
 .speech-dialogue-content{grid-template-columns:1fr;gap:.6rem}
 .speech-speaker-profile{flex-direction:row;align-items:center}
 .speech-speaker-profile .cast-portrait{width:46px;height:46px}
