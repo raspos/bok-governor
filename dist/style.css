@@ -689,5 +689,22 @@ h1,.hero h1,.council-title h1,.title-copy .title-wordmark{font-family:var(--type
 .btn-proceed-vote{background:linear-gradient(135deg,#234773,#3565a0);border:1px solid #6b98d1;color:#fff;border-radius:5px;padding:.45rem 1.1rem;font-size:.82rem;font-weight:700;cursor:pointer;transition:all .15s ease;letter-spacing:.01em}
 .btn-proceed-vote:hover{background:linear-gradient(135deg,#2c578c,#4179be);box-shadow:0 0 10px rgba(107,152,209,.5)}
 
+/* 1회 순환 완료 안내 패널 */
+.round-complete-panel{background:linear-gradient(135deg,#132238,#1c3350);border:1px solid #4a6c96;border-radius:6px;padding:.85rem 1rem;margin:.65rem 0;box-shadow:0 3px 12px rgba(0,0,0,.4)}
+.round-complete-title{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem;margin-bottom:.45rem}
+.round-complete-title strong{font-size:.88rem;color:#fce4a6;font-weight:800}
+.round-tally{font-size:.78rem;font-weight:700;color:#9ec2ea;background:rgba(0,0,0,.3);padding:2px 8px;border-radius:10px;border:1px solid #3d5878}
+.round-complete-desc{font-size:.78rem;color:#d5dfec;margin:0 0 .75rem;line-height:1.45}
+.round-complete-actions{display:flex;flex-direction:column;gap:.65rem}
+.dissent-btn-group{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:.45rem .65rem;background:rgba(0,0,0,.25);border-radius:5px;border:1px solid rgba(255,255,255,.08)}
+.dissent-group-label{font-size:.74rem;font-weight:700;color:#f0a8a8}
+.btn-persuade-member-pill{background:#26432a;border:1px solid #81c784;color:#e8f5e9;border-radius:4px;padding:.28rem .65rem;font-size:.75rem;font-weight:700;cursor:pointer;transition:all .15s ease}
+.btn-persuade-member-pill:hover{background:#355c3a;border-color:#a5d6a7;color:#fff;transform:translateY(-1px)}
+.btn-proceed-vote.primary-large{background:linear-gradient(135deg,#c49444,#edd188)!important;color:#101a26!important;font-weight:800!important;font-size:.88rem!important;padding:.6rem 1.25rem!important;border:none!important;box-shadow:0 3px 10px rgba(237,209,136,.45)!important;text-align:center;letter-spacing:.02em}
+.btn-proceed-vote.primary-large:hover{background:linear-gradient(135deg,#d4a350,#fae09c)!important;box-shadow:0 5px 14px rgba(237,209,136,.65)!important}
+.consensus-badge{font-size:.78rem;font-weight:700;color:#a5d6a7;padding:.3rem .5rem}
+.speech-timer-tag.is-completed{background:rgba(129,199,132,.18);color:#a5d6a7;border:1px solid rgba(129,199,132,.45)}
+
+
 
 
