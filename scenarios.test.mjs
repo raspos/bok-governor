@@ -106,4 +106,9 @@ test('meeting council has 5-second rotating member speeches with claim and expla
  assert.ok(html.includes('btn-proceed-vote'));
  assert.ok(html.includes('btn-persuade-member-pill'));
  assert.ok(html.includes('전원 5초 심의 완료'));
+ assert.ok(html.includes('persuasion-chat-thread'));
+ assert.ok(html.includes('getGovernorPersuasionDialogue'));
+ assert.ok(html.includes('getMemberPersuasionDialogue'));
+ assert.ok(html.includes('getGovernorFollowDialogue'));
+ assert.ok(html.includes('getMemberFinalOutcomeDialogue'));
 });
