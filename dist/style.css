@@ -609,17 +609,17 @@ h1,.hero h1,.council-title h1,.title-copy .title-wordmark{font-family:var(--type
 .speaker-meta-row{font-size:.73rem;color:#a6b4c9}
 .speaker-principle-row{font-size:.73rem;color:#eac783;line-height:1.35;margin-top:2px}
 .speech-bubble-box{background:#0d1726;border:1px solid #36475d;border-radius:6px;padding:.8rem .95rem;display:flex;flex-direction:column;gap:.65rem;position:relative}
-.speech-claim-block{display:flex;align-items:flex-start;gap:.55rem}
-.claim-label{display:inline-flex;align-items:center;justify-content:center;padding:2px 7px;font-size:.72rem;font-weight:800;border-radius:3px;background:#875c27;color:#fff;letter-spacing:.04em;flex-shrink:0;margin-top:2px}
+.speech-claim-block{display:flex;align-items:flex-start;gap:.65rem;background:rgba(255,255,255,.04);border-inline-start:3px solid #eac783;padding:.55rem .75rem;border-radius:0 4px 4px 0}
+.claim-label{display:inline-flex;align-items:center;justify-content:center;padding:2px 8px;font-size:.74rem;font-weight:800;border-radius:3px;background:#8e622b;color:#fff;letter-spacing:.04em;flex-shrink:0;margin-top:2px}
 .claim-body{flex:1}
-.claim-stance{font-size:.98rem;font-weight:700;line-height:1.45;word-break:keep-all}
+.claim-stance{font-size:1rem;font-weight:700;line-height:1.5;word-break:keep-all}
 .claim-stance.hike{color:#ffb8b8}
 .claim-stance.cut{color:#b3d9ff}
 .claim-stance.hold{color:#ffe8b3}
-.speech-explanation-block{display:flex;align-items:flex-start;gap:.55rem}
-.explanation-label{display:inline-flex;align-items:center;justify-content:center;padding:2px 7px;font-size:.72rem;font-weight:800;border-radius:3px;background:#244160;color:#d6e8ff;letter-spacing:.04em;flex-shrink:0;margin-top:2px}
+.speech-explanation-block{display:flex;align-items:flex-start;gap:.65rem;background:rgba(18,34,54,.92);border-inline-start:3px solid #5b8ec9;padding:.65rem .8rem;border-radius:0 4px 4px 0}
+.explanation-label{display:inline-flex;align-items:center;justify-content:center;padding:2px 8px;font-size:.74rem;font-weight:800;border-radius:3px;background:#254b73;color:#d6e8ff;letter-spacing:.04em;flex-shrink:0;margin-top:2px}
 .explanation-body{flex:1}
-.explanation-quote{margin:0;font-size:.92rem;line-height:1.6;color:#e2e8f0;font-weight:430;word-break:keep-all}
+.council-speech-turn blockquote,.council-speech-turn .explanation-quote{margin:0!important;padding:0!important;background:transparent!important;border:none!important;color:#f8fafc!important;font-size:.95rem!important;line-height:1.65!important;font-weight:430!important;word-break:keep-all!important}
 .speech-stage-cue{margin-top:.55rem;padding-top:.45rem;border-top:1px dashed rgba(255,255,255,.12);font-size:.78rem;color:#a6b4c9}
 .council-person.speaking-turn .cast-portrait{filter:drop-shadow(0 0 10px #eac783) drop-shadow(0 0 2px #fff);transform:scale(1.14);transform-origin:bottom;transition:transform .25s ease,filter .25s ease}
 .council-person.speaking-turn>span:last-child{box-shadow:0 0 0 2px #eac783,0 0 8px rgba(234,199,131,.55);background:#192a40;color:#fff}

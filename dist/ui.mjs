@@ -592,7 +592,7 @@ function councilSpeechTurnPanel(cue=''){
   +'</div>'
   +'<div class="speech-explanation-block">'
   +'<span class="explanation-label">설명</span>'
-  +'<div class="explanation-body"><blockquote class="explanation-quote">'+speechData.explanation+'</blockquote></div>'
+  +'<div class="explanation-body"><p class="explanation-quote">'+speechData.explanation+'</p></div>'
   +'</div>'
   +'</div>'
   +'</div>'
