@@ -52,8 +52,15 @@ export function opinions(s,focus,proposal=0,forecast='보합',market=openingMark
  const score=signals.prices+signals.activity+signals.markets-.54*(s.rate-neutralRate)+(.06+.08*x)*(market.expected-s.rate)+(game.roster?policyPressure(member.id,s):0);
  // A supported proposal can move a close vote. An unsupported proposal adds no weight.
  const plausible=forecast==='상승'?s.inflation>2.35&&s.expectations>2.25:forecast==='하락'?s.growth<s.capacity&&s.inflation>2:Math.abs(s.inflation-2)<.45;
- const persuasion=proposal*evidence>0?Math.sign(proposal)*Math.min(game.roster?.09:.18,Math.abs(evidence)*(plausible?.60:.30)):0;
- const judgment=score+persuasion;
+ const flex=member.flexibility??.5;
+ const alignBonus=proposal*evidence>0?Math.abs(evidence)*(plausible?.65:.35):0;
+ const biasAlign=(proposal*member.bias>0)?Math.abs(member.bias)*.14:0;
+ const govInfluence=proposal===0
+  ?(Math.abs(score)<.50?-Math.sign(score)*.08*flex:0)
+  :(proposal*evidence>0||Math.abs(evidence)<.25)
+   ?Math.sign(proposal)*Math.min(game.roster?.24:.28, alignBonus + .08*flex + biasAlign)
+   :0;
+ const judgment=score+govInfluence;
  const risk=Object.keys(signals).sort((a,b)=>Math.abs(signals[b])-Math.abs(signals[a]))[0];
  const macro=derivedMacro(s,game.records?.at(-1)?.origin);
  const activityText=macro.gdpRevision<0&&macro.gdpGap<0
