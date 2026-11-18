@@ -763,6 +763,9 @@ h1,.hero h1,.council-title h1,.title-copy .title-wordmark{font-family:var(--type
 .btn-cancel-method{background:transparent;border:1px solid #4d6d92;color:#9ec2ea;padding:.4rem .85rem;border-radius:4px;cursor:pointer;font-size:.8rem}
 .btn-cancel-method:hover{background:rgba(255,255,255,.05);color:#fff}
 .dialogue-finish-actions{margin-top:1rem;display:flex;justify-content:center}
+
+.btn-gov-speak{background:linear-gradient(135deg,#c49444,#edd188)!important;color:#101a26!important;font-weight:800!important;border:none!important;box-shadow:0 2px 8px rgba(237,209,136,.4)!important;padding:.45rem 1rem!important;cursor:pointer}
+.btn-gov-speak:hover{background:linear-gradient(135deg,#d4a350,#fae09c)!important;box-shadow:0 4px 12px rgba(237,209,136,.6)!important}
 </style>
   
 </head>
@@ -2275,8 +2278,6 @@ let savedTerm=(game.phase==='setup'||game.phase==='scenario')?null:game;
 try{document.documentElement?.classList.toggle('reduce-motion',localStorage.getItem('bok-reduce-motion')==='1');}catch{}
 let selectedMember=null,argumentMethod=null,meetingStep=game.context?.uiStep??0;
 let speakingTurnIndex=0,speakingAutoPlay=true,speakingTimer=null,debateStarted=false,debateRoundCompleted=false,selectedGoalKey='inflation';
-let voiceEnabled=true;
-try{const s=localStorage.getItem('bok-voice');if(s==='0')voiceEnabled=false;}catch{}
 const alternativeTo=change=>moves.find(d=>d!==change);
 let focus=game.context?.draft?.focus??'prices', forecast=game.context?.draft?.forecast??'하락', proposal=game.context?.draft?.proposal??0, alternative=alternativeTo(game.records.at(-1)?.change), metric='inflation', saveMessage='';
 const value=(k,n)=>n.toLocaleString('ko-KR',{maximumFractionDigits:k==='fx'?0:2,minimumFractionDigits:k==='fx'||k==='stress'?0:2})+metrics[k][1];
@@ -2616,102 +2617,6 @@ function memberPortrait(id){
  return '<span class="member-portrait cast-portrait" style="--cast-x:'+((id%5)*25)+'%;--cast-y:'+(Math.floor(id/5)*50)+'%" aria-hidden="true"></span>';
 }
 
-let cachedVoices=[];
-function updateVoicesList(){
- if(typeof window==='undefined'||!window.speechSynthesis)return;
- try{
-  const v=window.speechSynthesis.getVoices();
-  if(v&&v.length)cachedVoices=v;
- }catch{}
-}
-if(typeof window!=='undefined'&&window.speechSynthesis){
- updateVoicesList();
- window.speechSynthesis.onvoiceschanged=updateVoicesList;
-}
-
-function getBestKoreanVoice(memberIdx=0){
- if(typeof window==='undefined'||!window.speechSynthesis)return null;
- const all=(cachedVoices.length?cachedVoices:window.speechSynthesis.getVoices())||[];
- const ko=all.filter(v=>v.lang&&(v.lang==='ko-KR'||v.lang.startsWith('ko')||/korean|heami|sunhi|injoon|한국/i.test(v.name)));
- if(!ko.length)return null;
- return ko[memberIdx % ko.length];
-}
-
-const voicePitchRates=[
- {pitch:1.00,rate:1.08},
- {pitch:1.06,rate:1.15},
- {pitch:0.92,rate:1.10},
- {pitch:1.16,rate:1.18},
- {pitch:0.88,rate:1.08},
- {pitch:1.00,rate:1.14},
- {pitch:1.10,rate:1.12}
-];
-
-function speakText(text,pitch=1.0,rate=1.1,memberIdx=0){
- if(typeof window==='undefined'||!window.speechSynthesis||!voiceEnabled)return;
- try{
-  window.speechSynthesis.cancel();
-  if(window.speechSynthesis.paused)window.speechSynthesis.resume();
-  const clean=text.replace(/[*_#`"“”]/g,'').trim();
-  if(!clean)return;
-
-  const performSpeak=()=>{
-   try{
-    if(!voiceEnabled)return;
-    if(window.speechSynthesis.paused)window.speechSynthesis.resume();
-    const utter=new SpeechSynthesisUtterance(clean);
-    utter.lang='ko-KR';
-    utter.rate=rate;
-    utter.pitch=pitch;
-    const koVoice=getBestKoreanVoice(memberIdx);
-    if(koVoice)utter.voice=koVoice;
-    window.speechSynthesis.speak(utter);
-   }catch{}
-  };
-
-  const currVoices=cachedVoices.length?cachedVoices:(window.speechSynthesis.getVoices()||[]);
-  if(!currVoices.length){
-   let fired=false;
-   const handler=()=>{
-    if(fired)return;
-    fired=true;
-    updateVoicesList();
-    performSpeak();
-   };
-   window.speechSynthesis.onvoiceschanged=handler;
-   if(typeof globalThis.setTimeout==='function')globalThis.setTimeout(handler,200);
-  } else {
-   if(typeof globalThis.setTimeout==='function')globalThis.setTimeout(performSpeak,35);else performSpeak();
-  }
- }catch{}
-}
-function stopVoice(){
- if(typeof window!=='undefined'&&window.speechSynthesis){
-  try{window.speechSynthesis.cancel();}catch{}
- }
-}
-function triggerTurnVoice(){
- if(!voiceEnabled||game.phase!=='meeting'||selectedMember!==null)return;
- const s=game.state;
- const prev=game.records?.at(-1)?.origin??null;
- const macro=derivedMacro(s,prev);
- if(speakingTurnIndex===0){
-  const govSpeech=getGovernorSpeechData(s,macro,game.background??'scholar',proposal);
-  const p=voicePitchRates[0];
-  speakText('총재 개회 발언. 기준금리 '+label(proposal)+' 제안. '+govSpeech.claimQuote+' '+govSpeech.explanation, p.pitch, p.rate, 0);
- } else {
-  const committee=getCommittee(game);
-  const ops=opinions(s,focus,proposal,forecast,game.market,game);
-  const idx=speakingTurnIndex-1;
-  if(committee[idx]&&ops[idx]){
-   const m=committee[idx], o=ops[idx];
-   const data=getMemberSpeechData(m,o,s,macro,proposal);
-   const p=voicePitchRates[Math.min(speakingTurnIndex, voicePitchRates.length-1)];
-   speakText(m.name+' '+o.role+'. 주장: '+data.claimQuote+' 설명: '+data.explanation, p.pitch, p.rate, speakingTurnIndex);
-  }
- }
-}
-
 function startSpeakingTimer(){
  stopSpeakingTimer();
  if(typeof window==='undefined'||!window.setInterval)return;
@@ -2726,7 +2631,6 @@ function stopSpeakingTimer(){
   clearInterval(speakingTimer);
   speakingTimer=null;
  }
- stopVoice();
 }
 function advanceSpeakingTurn(delta=1,isAuto=false){
  const committee=getCommittee(game);
@@ -2769,7 +2673,6 @@ function updateSpeakingDom(){
  if(membersEl){
   membersEl.innerHTML=members();
  }
- triggerTurnVoice();
 }
 
 function getGovernorSpeechData(state,macro,bgKey,prop,goalKey=game.context?.goal?.key??selectedGoalKey??'inflation',foc=focus,fcast=forecast){
@@ -3018,22 +2921,34 @@ function councilSpeechTurnPanel(cue=''){
    +'<button type="button" class="gov-opt-btn '+(forecast==='상승'?'active':'')+'" data-action="gov-forecast-상승"><strong>상승</strong><small>추가 상승 압력</small></button>'
    +'</div></div>'
    +'</div>'
-   +'<div class="gov-deck-actions">'
-   +'<button type="button" class="speech-ctrl-btn btn-gov-start" data-action="gov-finalize-and-start" title="총재 제안을 확정하고 금통위원 심의를 시작합니다">총재 제안 공식 발표 및 위원 심의 시작 ▶</button>'
-   +'</div>'
+   +(!debateStarted
+     ?'<div class="gov-deck-actions">'
+       +'<button type="button" class="speech-ctrl-btn btn-gov-speak primary-large" data-action="gov-speak" title="총재 제안을 공식 발표합니다">총재 제안 모두발언 발표</button>'
+       +'<button type="button" class="speech-ctrl-btn btn-gov-start" data-action="gov-start-committee" title="위원 심의로 바로 진행합니다">위원 발언 바로 보기 ▶</button>'
+       +'</div>'
+     :'<div class="gov-deck-actions">'
+       +'<button type="button" class="speech-ctrl-btn btn-gov-start primary-large" data-action="gov-start-committee" title="금통위원 6인의 5초 순환 심의를 시작합니다">금통위원 심의 개시 (5초 순환) ▶</button>'
+       +'</div>')
    +'</div>';
+
+  const govTopControls = !debateStarted
+   ?'<button type="button" class="speech-ctrl-btn btn-gov-speak" data-action="gov-speak" title="총재 제안을 공식 발표합니다">제안 발표</button>'
+     +'<button type="button" class="speech-ctrl-btn btn-gov-start" data-action="gov-start-committee" title="금통위원 순차 심의 시작">위원 발언 보기 ▶</button>'
+   :'<button type="button" class="speech-ctrl-btn btn-gov-start primary-large" data-action="gov-start-committee" title="금통위원 순차 심의 시작">위원 심의 개시 ▶</button>';
+
+  const govStatusTag = !debateStarted
+   ?'<span class="speech-timer-tag gov-ready">의장 제안 수립 중</span>'
+   :'<span class="speech-timer-tag is-running">총재 제안 발표 완료 · 위원 심의 대기</span>';
 
   return '<section class="council-voice council-speech-turn" id="council-speech-turn" aria-label="금통위 개회 및 총재 제안">'
    +'<div class="speech-top-bar">'
    +'<div class="speech-title-box">'
    +'<span class="live-dot" aria-hidden="true"></span>'
    +'<span class="speech-header-title">금통위 개회 및 총재 제안 <strong>1/7 (의장 모두발언)</strong></span>'
-   +'<span class="speech-timer-tag gov-ready">제안 패키지 수립 중</span>'
+   +govStatusTag
    +'</div>'
    +'<div class="speech-nav-controls">'
-   +'<button type="button" class="speech-ctrl-btn speech-voice-btn '+(voiceEnabled?'voice-on':'')+'" data-action="speech-voice-toggle" title="음성(TTS) 낭독 켜기/끄기">'+(voiceEnabled?'🔊 음성 켜짐':'🔇 음성 꺼짐')+'</button>'
-   +'<button type="button" class="speech-ctrl-btn speech-repeat-btn" data-action="speech-voice-repeat" title="총재 발언 음성 다시 듣기">🔊 다시 듣기</button>'
-   +'<button type="button" class="speech-ctrl-btn btn-gov-start" data-action="gov-finalize-and-start" title="금통위원 순차 심의 시작">위원 발언 듣기 ▶</button>'
+   +govTopControls
    +'</div>'
    +'</div>'
    +'<div class="speech-timer-track"><div class="speech-timer-bar paused" style="width:100%;opacity:.2"></div></div>'
@@ -3116,8 +3031,6 @@ function councilSpeechTurnPanel(cue=''){
   +timerTag
   +'</div>'
   +'<div class="speech-nav-controls">'
-  +'<button type="button" class="speech-ctrl-btn speech-voice-btn '+(voiceEnabled?'voice-on':'')+'" data-action="speech-voice-toggle" title="음성(TTS) 낭독 켜기/끄기">'+(voiceEnabled?'🔊 음성 켜짐':'🔇 음성 꺼짐')+'</button>'
-  +'<button type="button" class="speech-ctrl-btn speech-repeat-btn" data-action="speech-voice-repeat" title="현재 발언 음성 다시 듣기">🔊 다시 듣기</button>'
   +'<button type="button" class="speech-ctrl-btn" data-action="speech-prev" title="이전 발언">◀ 이전</button>'
   +'<button type="button" class="speech-ctrl-btn speech-toggle-btn '+(speakingAutoPlay?'btn-pause':'btn-play')+'" data-action="speech-toggle" title="5초 자동 전환 일시정지 또는 재생">'
   +(speakingAutoPlay?'⏸ 5초 정지':'▶ 5초 재생')
@@ -4000,19 +3913,30 @@ document.addEventListener('click',e=>{
   updateSpeakingDom();
   return;
  }
- if(action==='gov-finalize-and-start'||action==='speech-next'&&speakingTurnIndex===0){
+ if(action==='gov-speak'){
   if(!game.context?.goal){
    const updated=chooseGoal(game,selectedGoalKey);
    game=updated;
   }
   debateStarted=true;
-   debateRoundCompleted=false;
-   speakingTurnIndex=1;
+  speakingTurnIndex=0;
+  game={...game,context:{...game.context,draft:{...game.context?.draft,proposal,focus,forecast}}};
+  commit(game);
+  updateSpeakingDom();
+  return;
+ }
+ if(action==='gov-start-committee'||action==='gov-finalize-and-start'||action==='speech-next'&&speakingTurnIndex===0){
+  if(!game.context?.goal){
+   const updated=chooseGoal(game,selectedGoalKey);
+   game=updated;
+  }
+  debateStarted=true;
+  debateRoundCompleted=false;
+  speakingTurnIndex=1;
   game={...game,context:{...game.context,draft:{...game.context?.draft,proposal,focus,forecast}}};
   commit(game);
   updateSpeakingDom();
   if(speakingAutoPlay)startSpeakingTimer();
-  triggerTurnVoice();
   return;
  }
  if(action==='proceed-to-vote'){
@@ -4042,26 +3966,6 @@ document.addEventListener('click',e=>{
   if(speakingAutoPlay)startSpeakingTimer();
   return;
  }
- if(action==='speech-voice-toggle'){
-   voiceEnabled=!voiceEnabled;
-   try{localStorage.setItem('bok-voice',voiceEnabled?'1':'0');}catch{}
-   if(!voiceEnabled){
-    stopVoice();
-   } else {
-    triggerTurnVoice();
-   }
-   updateSpeakingDom();
-   return;
-  }
-  if(action==='speech-voice-repeat'){
-   if(!voiceEnabled){
-    voiceEnabled=true;
-    try{localStorage.setItem('bok-voice','1');}catch{}
-   }
-   triggerTurnVoice();
-   updateSpeakingDom();
-   return;
-  }
  if(action==='speech-prev'){
   advanceSpeakingTurn(-1,false);
   if(speakingAutoPlay)startSpeakingTimer();
@@ -4086,6 +3990,7 @@ document.addEventListener('click',e=>{
   }
  if(action.startsWith('speech-turn-')){
   speakingTurnIndex=Number(action.slice(12));
+  if(speakingTurnIndex>0)debateStarted=true;
   if(speakingAutoPlay)startSpeakingTimer();
   updateSpeakingDom();
   return;
@@ -4105,7 +4010,7 @@ document.addEventListener('click',e=>{
  if(action==='office-report'||action==='office-phone'){showOfficeDocument(action,b);return;}
  if(action==='close-member'){const id=selectedMember;selectedMember=null;argumentMethod=null;render();if(speakingAutoPlay)startSpeakingTimer();document.querySelector('[data-action="member-'+id+'"]')?.focus();return;}
  switch(action){
- case 'meeting':speakingTurnIndex=0;speakingAutoPlay=true;debateStarted=false;debateRoundCompleted=false;meetingStep=game.turn===0?0:1;{const next=begin(game);commit({...next,context:{...next.context,uiStep:meetingStep}});if(voiceEnabled&&typeof globalThis.setTimeout==='function')globalThis.setTimeout(triggerTurnVoice,300);}break;
+ case 'meeting':stopSpeakingTimer();speakingTurnIndex=0;speakingAutoPlay=true;debateStarted=false;debateRoundCompleted=false;meetingStep=game.turn===0?0:1;{const next=begin(game);commit({...next,context:{...next.context,uiStep:meetingStep}});}break;
  case 'next':stopSpeakingTimer();debateStarted=false;debateRoundCompleted=false;speakingTurnIndex=0;if(game.phase==='result'){commit(openFrontPage(game));break;} selectedMember=null;argumentMethod=null;focus='prices';forecast='하락';proposal=0;commit(onward(game));break;
  case 'review':document.querySelector('#comparison').scrollIntoView();break;
  case 'reset':titleOpen=true;render(true);break;

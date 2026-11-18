@@ -101,7 +101,8 @@ test('meeting council has 5-second rotating member speeches with claim and expla
  assert.ok(html.includes('getMemberSpeechData'));
  assert.ok(html.includes('getGovernorSpeechData'));
  assert.ok(html.includes('gov-proposal-selector'));
- assert.ok(html.includes('speech-voice-btn'));
+ assert.ok(html.includes('btn-gov-speak'));
+ assert.ok(html.includes('btn-gov-start'));
  assert.ok(html.includes('round-complete-panel'));
  assert.ok(html.includes('btn-proceed-vote'));
  assert.ok(html.includes('btn-persuade-member-pill'));

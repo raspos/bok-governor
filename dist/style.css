@@ -737,3 +737,6 @@ h1,.hero h1,.council-title h1,.title-copy .title-wordmark{font-family:var(--type
 .btn-cancel-method{background:transparent;border:1px solid #4d6d92;color:#9ec2ea;padding:.4rem .85rem;border-radius:4px;cursor:pointer;font-size:.8rem}
 .btn-cancel-method:hover{background:rgba(255,255,255,.05);color:#fff}
 .dialogue-finish-actions{margin-top:1rem;display:flex;justify-content:center}
+
+.btn-gov-speak{background:linear-gradient(135deg,#c49444,#edd188)!important;color:#101a26!important;font-weight:800!important;border:none!important;box-shadow:0 2px 8px rgba(237,209,136,.4)!important;padding:.45rem 1rem!important;cursor:pointer}
+.btn-gov-speak:hover{background:linear-gradient(135deg,#d4a350,#fae09c)!important;box-shadow:0 4px 12px rgba(237,209,136,.6)!important}
