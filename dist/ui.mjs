@@ -54,6 +54,169 @@ function chart(k,series){
  });
  return '<svg class="chart" viewBox="0 0 400 132" role="img" aria-label="'+metrics[k][0]+' 추세"><path d="M12 19H388 M12 65H388 M12 113H388" stroke="#dfd6c8" fill="none"/>'+paths.join('')+'</svg><div class="row muted"><span>'+value(k,min)+'</span><span>'+value(k,max)+'</span></div>';
 }
+
+function sparklineSvg(values, {target=null, min=null, max=null, color='#285375', width=160, height=44}={}){
+ if(!values||!values.length)return '';
+ const all=target!==null?[...values,target]:values;
+ const lo=min!==null?min:Math.min(...all);
+ const hi=max!==null?max:Math.max(...all);
+ const span=hi-lo||1;
+ const pad=5, w=width-pad*2, h=height-pad*2;
+ const y=v=>Number((pad+h-h*(v-lo)/span).toFixed(1));
+ const x=i=>Number((pad+(values.length<=1?w/2:(w*i/(values.length-1)))).toFixed(1));
+ const points=values.map((v,i)=>x(i)+','+y(v)).join(' ');
+ const lastX=x(values.length-1), lastY=y(values.at(-1));
+ let targetLine='';
+ if(target!==null){
+  const ty=y(target);
+  targetLine='<line x1="'+pad+'" y1="'+ty+'" x2="'+(width-pad)+'" y2="'+ty+'" stroke="#b04337" stroke-dasharray="3 3" stroke-width="1.2"><title>물가안정목표: '+target+'%</title></line>';
+ }
+ return '<svg class="info-sparkline" viewBox="0 0 '+width+' '+height+'" aria-hidden="true">'+targetLine+'<polyline points="'+points+'" fill="none" stroke="'+color+'" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="'+lastX+'" cy="'+lastY+'" r="3.2" fill="'+color+'"/></svg>';
+}
+
+function policyDilemmaInfographic(s, prev){
+ const macro=derivedMacro(s, prev);
+ const inflGap=Number((s.inflation-2.0).toFixed(2));
+ const isHighInfl=inflGap>=0.25;
+ const isLowInfl=inflGap<=-0.25;
+ const isWeakGrowth=macro.gdpGap<=-0.15||macro.cci<99.8;
+ const isStrongGrowth=macro.gdpGap>=0.2||macro.cci>100.5;
+ const isFinancialStress=s.debt>=4.0||s.stress>=42||s.fx>=1435;
+
+ let dilemmaTitle='통화정책 상충관계 분석';
+ let dilemmaType='balance';
+ let dilemmaText='';
+
+ if(isHighInfl&&isWeakGrowth){
+  dilemmaType='conflict';
+  dilemmaTitle='물가 억제 vs 경기 부양 상충 (진퇴양난)';
+  dilemmaText='소비자물가 상승률('+s.inflation.toFixed(2)+'%)이 2% 목표를 웃돌아 금리 인상(긴축) 압력이 높지만, GDP갭률('+macro.gdpGap.toFixed(1)+'%)이 마이너스로 실물경기가 잠재 생산을 밑돌아 추가 긴축 시 내수 침체가 깊어지는 딜레마입니다.';
+ }else if(isWeakGrowth&&isFinancialStress){
+  dilemmaType='conflict';
+  dilemmaTitle='경기 부양 vs 금융안정·환율 방어 상충';
+  dilemmaText='내수 활력을 위해 금리 인하가 시급하지만, 금리를 내리면 가계부채 누증(신용증가율 '+s.debt.toFixed(1)+'%)과 원화 약세(환율 '+Math.round(s.fx).toLocaleString('ko-KR')+'원)를 자극할 우려가 팽팽히 맞섭니다.';
+ }else if(isHighInfl&&isFinancialStress){
+  dilemmaType='caution';
+  dilemmaTitle='고물가·금융위험 복합 경계 국면';
+  dilemmaText='물가 목표 상회와 금융시장 위험이 동시에 높아 긴축적 기조 유지가 불가피하나, 대출금리 상승에 따른 가계와 자영업자의 이자 상환 부담을 면밀히 살펴야 합니다.';
+ }else if(isLowInfl&&isWeakGrowth){
+  dilemmaType='pivot';
+  dilemmaTitle='완화적 통화정책(피벗) 전환 여건';
+  dilemmaText='물가가 2%선에 안착하거나 하회하여 통화정책을 완화할 여력이 확보되었으며, 경기 회복을 위한 금리 인하 시점과 폭을 조율하는 단계입니다.';
+ }else{
+  dilemmaType='balance';
+  dilemmaTitle='연착륙을 위한 정교한 균형 조율';
+  dilemmaText='물가, 실물경기, 금융시장 지표가 균형을 모색하는 국면입니다. 대내외 리스크와 정책 파급시차를 고려해 중립적 통화정책 기조를 유지해야 합니다.';
+ }
+
+ const inflPill=isHighInfl?'<span class="dilemma-pill pill-alert">긴축(인상) 압력 우세</span>':isLowInfl?'<span class="dilemma-pill pill-ease">완화(인하) 여력 확보</span>':'<span class="dilemma-pill pill-neutral">목표(2%) 부근 안정</span>';
+ const growthPill=isWeakGrowth?'<span class="dilemma-pill pill-ease">경기 부양(인하) 필요</span>':isStrongGrowth?'<span class="dilemma-pill pill-alert">경기 과열 방지</span>':'<span class="dilemma-pill pill-neutral">잠재성장 수준 유지</span>';
+ const stabPill=isFinancialStress?'<span class="dilemma-pill pill-alert">금융불균형·환율 경계</span>':'<span class="dilemma-pill pill-neutral">금융시장 안정 관리</span>';
+
+ return '<div class="dilemma-box dilemma-'+dilemmaType+'">'
+  +'<div class="dilemma-header">'
+  +'<span class="dilemma-badge">통화정책 3대 영역 딜레마</span>'
+  +'<h3>'+dilemmaTitle+'</h3>'
+  +'</div>'
+  +'<div class="dilemma-triad">'
+  +'<div class="triad-item"><div class="triad-topic">물가안정 (Target 2.0%)</div><div class="triad-val">'+s.inflation.toFixed(2)+'% <small>(목표 대비 '+(inflGap>=0?'+':'')+inflGap.toFixed(2)+'%p)</small></div>'+inflPill+'</div>'
+  +'<div class="triad-item"><div class="triad-topic">실물경기 (성장·수요)</div><div class="triad-val">전망 '+macro.gdpForecast.toFixed(1)+'% <small>(GDP갭 '+macro.gdpGap.toFixed(1)+'%)</small></div>'+growthPill+'</div>'
+  +'<div class="triad-item"><div class="triad-topic">금융안정 (부채·환율)</div><div class="triad-val">가계신용 '+s.debt.toFixed(1)+'% <small>(환율 '+Math.round(s.fx)+'원)</small></div>'+stabPill+'</div>'
+  +'</div>'
+  +'<p class="dilemma-desc">'+dilemmaText+'</p>'
+  +'</div>';
+}
+
+function economicInfographics(s, prev){
+ const macro=derivedMacro(s, prev);
+ const inflGap=Number((s.inflation-2.0).toFixed(2));
+ const inflHistory=game.path.map(x=>x.inflation);
+
+ const cardInflation='<article class="info-card info-inflation">'
+  +'<div class="info-card-header"><span class="info-tag">물가안정</span><span class="info-sub">한은 공식목표 2.0%</span></div>'
+  +'<div class="info-main-metric">'
+  +'<strong class="info-val-huge">'+s.inflation.toFixed(2)+'<small>%</small></strong>'
+  +'<div class="info-badges">'
+  +'<span class="info-badge '+(inflGap>0.2?'badge-alert':inflGap<-0.2?'badge-ease':'badge-neutral')+'">목표 대비 '+(inflGap>=0?'+':'')+inflGap.toFixed(2)+'%p</span>'
+  +'<span class="info-badge badge-change">'+scoreChange('inflation', prev?.inflation??s.inflation, s.inflation)+'</span>'
+  +'</div></div>'
+  +'<div class="info-visual-box"><div class="visual-label">소비자물가 추이 및 2% 기준선 (붉은 점선)</div>'+sparklineSvg(inflHistory, {target:2.0, color:'#b04337', min:1.4, max:4.0})+'</div>'
+  +'<p class="info-interpretation">소비자물가 상승률이 2.0% 물가안정목표선 대비 '+(inflGap>=0?'+'+inflGap.toFixed(2)+'%p 웃돌고 있습니다':inflGap.toFixed(2)+'%p 밑돌고 있습니다')+'. 기대인플레이션율은 '+s.expectations.toFixed(1)+'%입니다.</p>'
+  +'</article>';
+
+ const gdpGapPercent=Math.max(-100, Math.min(100, macro.gdpGap * 50));
+ const cardGrowth='<article class="info-card info-growth">'
+  +'<div class="info-card-header"><span class="info-tag">실물경제 및 성장</span><span class="info-sub">2027년 실질 GDP</span></div>'
+  +'<div class="info-main-metric">'
+  +'<strong class="info-val-huge">'+macro.gdpForecast.toFixed(1)+'<small>%</small></strong>'
+  +'<div class="info-badges">'
+  +'<span class="info-badge '+(macro.gdpRevision>=0?'badge-good':'badge-alert')+'">직전 대비 '+(macro.gdpRevision>=0?'+':'')+macro.gdpRevision.toFixed(1)+'%p</span>'
+  +'<span class="info-badge badge-neutral">'+macro.gdpGapStatus+'</span>'
+  +'</div></div>'
+  +'<div class="info-visual-box">'
+  +'<div class="visual-label">GDP갭률 추정치 ('+macro.gdpGap.toFixed(1)+'%) · 잠재 생산 수준 비교</div>'
+  +'<div class="gap-bar-track"><div class="gap-bar-center"></div><div class="gap-bar-fill '+(macro.gdpGap>=0?'gap-positive':'gap-negative')+'" style="width:'+Math.abs(gdpGapPercent)+'%;left:'+(macro.gdpGap>=0?'50%':'calc(50% - '+Math.abs(gdpGapPercent)+'%)')+'"></div></div>'
+  +'<div class="gap-bar-labels"><span>-2.0% (수요 침체)</span><span>0% (잠재선)</span><span>+2.0% (경기 과열)</span></div>'
+  +'</div>'
+  +'<div class="info-submetrics">'
+  +'<span><strong>동행지수 순환변동치</strong> '+macro.cci.toFixed(1)+'p <small>('+(macro.cciChange>=0?'+':'')+macro.cciChange.toFixed(1)+'p, '+macro.cciStatus+')</small></span>'
+  +'<span><strong>민간소비</strong> '+macro.privateConsumption.toFixed(1)+'% · <strong>설비투자</strong> '+macro.facilityInvestment.toFixed(1)+'%</span>'
+  +'</div>'
+  +'<p class="info-interpretation">실질 경제활동이 잠재 수준을 '+(macro.gdpGap>=0?'상회하여 수요 견인 압력이 지속되고 있습니다':'밑돌아 내수 부진과 경기 부양 여력이 요구됩니다')+'.</p>'
+  +'</article>';
+
+ const stressLevel=s.stress>=60?'위험':s.stress>=40?'경계':'안정';
+ const stressColor=s.stress>=60?'#a1382f':s.stress>=40?'#b07931':'#2f6d54';
+ const cardStability='<article class="info-card info-stability">'
+  +'<div class="info-card-header"><span class="info-tag">금융안정</span><span class="info-sub">가계신용 및 자금시장 리스크</span></div>'
+  +'<div class="info-main-metric">'
+  +'<strong class="info-val-huge">'+s.debt.toFixed(1)+'<small>%</small></strong>'
+  +'<div class="info-badges">'
+  +'<span class="info-badge '+(s.debt>=4.5?'badge-alert':s.debt<=3.0?'badge-good':'badge-neutral')+'">가계신용 증가세 '+(s.debt>=4.5?'과열':'완만')+'</span>'
+  +'<span class="info-badge badge-change">'+scoreChange('debt', prev?.debt??s.debt, s.debt)+'</span>'
+  +'</div></div>'
+  +'<div class="info-visual-box">'
+  +'<div class="visual-label">금융위험 지수 ('+s.stress.toFixed(0)+'/100) · <strong>'+stressLevel+' 단계</strong></div>'
+  +'<div class="stress-bar-track"><div class="stress-bar-fill" style="width:'+s.stress+'%;background:'+stressColor+'"></div></div>'
+  +'<div class="stress-bar-labels"><span>0 (안정)</span><span>40 (경계)</span><span>60 (위험)</span><span>100</span></div>'
+  +'</div>'
+  +'<div class="info-submetrics">'
+  +'<span><strong>주택가격 상승률</strong> '+s.housing.toFixed(1)+'%</span>'
+  +'<span><strong>은행 대출금리</strong> '+s.loan.toFixed(2)+'%</span>'
+  +'</div>'
+  +'<p class="info-interpretation">대출금리 상승이 차주의 상환 부담을 높이고 있으나, 가계신용 증가율이 연율 '+s.debt.toFixed(1)+'%로 금융불균형 누증 방어가 요구됩니다.</p>'
+  +'</article>';
+
+ const rateSpread=Number((s.rate-s.fed).toFixed(2));
+ const cardFx='<article class="info-card info-fx">'
+  +'<div class="info-card-header"><span class="info-tag">외환 및 글로벌</span><span class="info-sub">원/달러 및 대외 여건</span></div>'
+  +'<div class="info-main-metric">'
+  +'<strong class="info-val-huge">'+Math.round(s.fx).toLocaleString('ko-KR')+'<small>원</small></strong>'
+  +'<div class="info-badges">'
+  +'<span class="info-badge '+(s.fx>=1440?'badge-alert':'badge-neutral')+'">'+(s.fx>=1440?'원화 약세 심화':'외환시장 관리')+'</span>'
+  +'<span class="info-badge badge-change">'+scoreChange('fx', prev?.fx??s.fx, s.fx)+'</span>'
+  +'</div></div>'
+  +'<div class="info-visual-box">'
+  +'<div class="visual-label">한·미 기준금리 비교 및 금리차 ('+(rateSpread>=0?'+':'')+rateSpread.toFixed(2)+'%p)</div>'
+  +'<div class="fed-spread-box">'
+  +'<div class="spread-col"><span>한국 기준금리</span><strong>'+s.rate.toFixed(2)+'%</strong></div>'
+  +'<div class="spread-col spread-gap"><span>금리차 역전</span><strong style="color:#b04337">'+(rateSpread>=0?'+':'')+rateSpread.toFixed(2)+'%p</strong></div>'
+  +'<div class="spread-col"><span>미국 연방기금금리</span><strong>'+s.fed.toFixed(2)+'%</strong></div>'
+  +'</div>'
+  +'</div>'
+  +'<div class="info-submetrics">'
+  +'<span><strong>국제유가(브렌트유)</strong> '+Math.round(s.oil)+'달러</span>'
+  +'<span><strong>단기 시장금리</strong> '+value('rate', game.market?.yield??s.rate)+'</span>'
+  +'</div>'
+  +'<p class="info-interpretation">달러 강세와 한·미 금리차 역전(-'+Math.abs(rateSpread).toFixed(2)+'%p)이 수입물가 상승 압력 및 환율 변동성으로 이어지고 있습니다.</p>'
+  +'</article>';
+
+ return '<div class="infographic-dashboard">'
+  +'<div class="infographic-grid">'
+  +cardInflation+cardGrowth+cardStability+cardFx
+  +'</div>'
+  +'</div>';
+}
 function targetValue(k,n){return k==='stress'?n.toFixed(1)+'/100':value(k,n);}
 function targetBoundary(g){
  const {key,limit,min}=g;
@@ -68,14 +231,55 @@ function goalPanel(){
  '<form id="goal-form"><fieldset><legend>이번 회의에서 우선할 수치</legend>'+radio('goalKey',goalOptions(game.state).map(o=>[o.key,o.name+' · '+targetBoundary(o)]),g?.key)+'</fieldset><button class="secondary" type="submit">'+(g?'목표 변경':'목표 저장')+'</button></form><p class="muted">회의 구간을 평가하는 내부 기준입니다. 한국은행의 중기 물가안정목표는 2%입니다.</p></section>';
 }
 function policyPreview(){
- const s=game.state,g=game.context?.goal,term=goalPeriod(game.turn,s);
- const rows=goalForecast(s,term.months),chosen=rows.find(r=>r.move===proposal),held=rows.find(r=>r.move===0);
+ const s=game.state, g=game.context?.goal, term=goalPeriod(game.turn,s);
+ const rows=goalForecast(s,term.months), chosen=rows.find(r=>r.move===proposal), held=rows.find(r=>r.move===0);
+ const heldMacro=derivedMacro(held.center, s);
  const effects=policyMetrics.map(k=>metrics[k][0]+' '+targetDelta(k,chosen.center[k]-held.center[k])).join(' · ');
  const market=game.context?.watch??currentWatch(game);
 
- const table=g?'<div class="goal-table forecast-choices" aria-label="금리안별 목표 지표 전망">'+rows.map(r=>'<article '+(r.move===proposal?'class="forecast-selected"':'')+'><h4>'+value('rate',r.rate)+(r.move===proposal?' · 제안':'')+'</h4><strong>'+targetValue(g.key,r.center[g.key])+'</strong><small>충격 범위 '+r.range[g.key].map(n=>targetValue(g.key,n)).join(' ~ ')+'</small><small>동결 대비 '+policyMetrics.filter(k=>k!==g.key).map(k=>metrics[k][0]+' '+targetDelta(k,r.center[k]-held.center[k])).join(' · ')+'</small></article>').join('')+'</div><p>'+goalDifficulty(g,rows)+'</p>':'';
+ const scenarioCards=rows.map(r=>{
+  const c=r.center;
+  const m=derivedMacro(c, s);
+  const isSelected=r.move===proposal;
+  const moveName=r.move<0?'0.25%p 인하':r.move>0?'0.25%p 인상':'동결 (기준 경로)';
+  const badgeClass=r.move<0?'badge-cut':r.move>0?'badge-hike':'badge-hold';
 
- return '<h3>제안이 통과된다면 · '+value('rate',chosen.rate)+'</h3>'+table+'<p>동결 전망과의 차이 · '+effects+'</p><p>시장 예상 '+value('rate',market.expected)+' 대비 제안 '+signed(chosen.rate-market.expected)+'%p</p><p class="muted">기준 전망은 추가 충격 없음, 범위는 두 유가·수요·금융위험 가정을 포함합니다. 범위는 예측 확률과 다릅니다. 시행 금리는 위원회 표결로 확정됩니다.</p>';
+  const inflDiff=Number((c.inflation-held.center.inflation).toFixed(2));
+  const gdpDiff=Number((m.gdpForecast-heldMacro.gdpForecast).toFixed(2));
+  const gapDiff=Number((m.gdpGap-heldMacro.gdpGap).toFixed(2));
+  const debtDiff=Number((c.debt-held.center.debt).toFixed(2));
+  const stressDiff=Number((c.stress-held.center.stress).toFixed(1));
+
+  const targetRangeText=g?'<div class="sc-target-range"><small>목표 지표('+metrics[g.key][0]+') 충격 범위: <strong>'+r.range[g.key].map(n=>targetValue(g.key,n)).join(' ~ ')+'</strong></small></div>':'';
+
+  return '<article class="rate-scenario-card '+(isSelected?'forecast-selected':'')+'">'
+   +'<div class="sc-header">'
+   +'<div class="sc-rate-title"><h4>'+value('rate',r.rate)+'</h4><span class="sc-badge '+badgeClass+'">'+moveName+'</span></div>'
+   +(isSelected?'<span class="sc-selected-tag">총재 제안</span>':'')
+   +'</div>'
+   +'<div class="sc-metrics-table">'
+   +'<div class="sc-row '+(g?.key==='inflation'?'sc-goal-row':'')+'"><span class="sc-name">소비자물가</span><strong class="sc-val">'+c.inflation.toFixed(2)+'%</strong><span class="sc-delta '+(inflDiff>0?'d-up':inflDiff<0?'d-down':'d-zero')+'">'+(r.move===0?'기준':targetDelta('inflation',inflDiff))+'</span></div>'
+   +'<div class="sc-row '+(g?.key==='growth'?'sc-goal-row':'')+'"><span class="sc-name">성장률 전망</span><strong class="sc-val">'+m.gdpForecast.toFixed(1)+'%</strong><span class="sc-delta '+(gdpDiff>0?'d-up':gdpDiff<0?'d-down':'d-zero')+'">'+(r.move===0?'기준':(gdpDiff>=0?'+':'')+gdpDiff.toFixed(1)+'%p')+'</span></div>'
+   +'<div class="sc-row"><span class="sc-name">GDP갭률</span><strong class="sc-val">'+m.gdpGap.toFixed(1)+'%</strong><span class="sc-delta '+(gapDiff>0?'d-up':gapDiff<0?'d-down':'d-zero')+'">'+(r.move===0?'기준':(gapDiff>=0?'+':'')+gapDiff.toFixed(1)+'%p')+'</span></div>'
+   +'<div class="sc-row '+(g?.key==='debt'?'sc-goal-row':'')+'"><span class="sc-name">가계신용 증가</span><strong class="sc-val">'+c.debt.toFixed(1)+'%</strong><span class="sc-delta '+(debtDiff>0?'d-up':debtDiff<0?'d-down':'d-zero')+'">'+(r.move===0?'기준':targetDelta('debt',debtDiff))+'</span></div>'
+   +'<div class="sc-row '+(g?.key==='stress'?'sc-goal-row':'')+'"><span class="sc-name">금융위험</span><strong class="sc-val">'+c.stress.toFixed(0)+'/100</strong><span class="sc-delta '+(stressDiff>0?'d-up':stressDiff<0?'d-down':'d-zero')+'">'+(r.move===0?'기준':(stressDiff>=0?'+':'')+stressDiff.toFixed(0))+'</span></div>'
+   +'</div>'
+   +targetRangeText
+   +'</article>';
+ }).join('');
+
+ const table='<div class="rate-scenarios-grid goal-table forecast-choices" aria-label="금리안별 5대 지표 전망 비교">'+scenarioCards+'</div>'+(g?'<p class="sc-difficulty-note">'+goalDifficulty(g,rows)+'</p>':'');
+
+ const premiseNotice='<div class="sc-premise-box"><small>※ <strong>시나리오 비교 전제:</strong> 인상·동결·인하 3개 시나리오는 동일한 현재 경제 상태, 동일한 전망 기간('+term.label+'), 동일한 외부 무충격(calm) 조건에서 정책금리 변경 효과만을 분리하여 시뮬레이션한 전망 경로입니다. 동일 지표 간 축과 단위를 통일하여 표시합니다.</small></div>';
+
+ return '<h3>제안이 통과된다면 · 기준금리 '+value('rate',chosen.rate)+'</h3>'
+  +table
+  +premiseNotice
+  +'<div class="sc-summary-box">'
+  +'<p><strong>동결 전망 대비 파급효과:</strong> '+effects+'</p>'
+  +'<p><strong>시장 예상 대비:</strong> 시장 예상('+value('rate',market.expected)+') 대비 제안 '+(chosen.rate>=market.expected?'+':'')+(chosen.rate-market.expected).toFixed(2)+'%p</p>'
+  +'<p class="muted">기준 전망은 추가 외부 충격 없음 가정이며, 충격 범위는 유가·해외수요·금융위험 2가지 대외 시나리오를 반영합니다. 실제 시행 금리는 금통위 표결을 통해 결정됩니다.</p>'
+  +'</div>';
 }
 function goalOutcome(record){
  const g=record?.goal,v=record?.goalResult;
@@ -111,8 +315,13 @@ function reports(){
  const macro=derivedMacro(s,prev);
  const baseline=project(s,s.rate,Array.from({length:3},()=>(calm))).at(-1);
  const baseMacro=derivedMacro(baseline,s);
- return '<div class="grid">'
-  +'<section class="panel"><div class="eyebrow">조사국</div><h2>경제전망 및 거시경제 상황</h2>'
+
+ const dilemma=policyDilemmaInfographic(s, prev);
+ const infographics=economicInfographics(s, prev);
+
+ const detailedTables='<details class="infographic-details"><summary>통계청·한국은행 산식 기반 상세 거시경제 통계표 접기/펼치기</summary>'
+  +'<div class="grid">'
+  +'<section class="panel"><div class="eyebrow">조사국</div><h2>경제전망 및 거시경제 상황 상세</h2>'
   +'<div class="report-lead">'
   +'<strong>2027년 실질 GDP 성장률 전망 '+macro.gdpForecast.toFixed(1)+'%</strong>'
   +'<span class="muted"> (직전 전망 대비 '+(macro.gdpRevision>=0?'+':'')+macro.gdpRevision.toFixed(1)+'%p, 전기비 QoQ '+macro.gdpQoQ.toFixed(2)+'%, 전년동기비 YoY '+macro.gdpYoY.toFixed(1)+'%)</span>'
@@ -122,12 +331,15 @@ function reports(){
   +'<p><strong>민간소비 증가율 '+macro.privateConsumption.toFixed(1)+'%</strong> · <strong>설비투자 증가율 '+macro.facilityInvestment.toFixed(1)+'%</strong></p>'
   +'<div class="muted">3개월 무충격 동결 시 물가 전망 '+value('inflation',baseline.inflation)+', 성장률 전망 '+baseMacro.gdpForecast.toFixed(1)+'% (GDP갭률 '+baseMacro.gdpGap.toFixed(1)+'%) · 실업률 '+value('unemployment',s.unemployment)+'</div>'
   +'</section>'
-  +'<section class="panel"><div class="eyebrow">금융시장국</div><h2>시장과 금융안정</h2>'
+  +'<section class="panel"><div class="eyebrow">금융시장국</div><h2>시장과 금융안정 상세</h2>'
   +'<p><strong>가계신용 증가율(연율) '+value('debt',s.debt)+'</strong> · <strong>주택가격 상승률 '+value('housing',s.housing)+'</strong></p>'
   +'<p>미국 연방기금금리 '+value('fed',s.fed)+' · 원/달러 환율 '+Math.round(s.fx)+'원<br>은행 연 대출금리 '+value('loan',s.loan)+' · 금융위험 '+value('stress',s.stress)+'</p>'
   +'<div class="muted">원화 약세는 수입물가에, 대출금리는 가계·기업의 상환 부담과 내수 소비에 파급시차를 두고 영향을 줍니다.</div>'
   +'</section>'
-  +'</div>';
+  +'</div>'
+  +'</details>';
+
+ return '<div class="briefing-infographic-wrap">'+dilemma+infographics+detailedTables+'</div>';
 }
 
 function office(){
@@ -201,7 +413,32 @@ function result(){
  const withoutShocks=project(o,r.rate,shocks.map(e=>({...calm,sensitivity:e.sensitivity}))).at(-1);
  const months=r.endMonth-o.month;
  const changes=['inflation','growth','fx','stress','consumption','investment','debt'];
- return '<div class="eyebrow">'+r.date+' / 통화정책방향 의결</div><h1>기준금리 '+value('rate',r.rate)+'</h1><p>총재 제안 '+label(r.proposal)+' · 위원회 결정 '+label(r.change)+' · 물가 전망 '+r.forecast+'</p>'+(r.proposal!==r.change?'<aside class="verdict-turn"><strong>총재 제안 미채택</strong><p>총재는 '+label(r.proposal)+'을 제안했습니다. 실제 적용 금리는 '+value('rate',r.rate)+'입니다.</p></aside>':'')+'<div class="advance-action">'+button('next','신문 1면 보기')+'</div>'+marketPanel(r)+goalOutcome(r)+watchAfter(r)+debateRecord(r)+'<div class="grid"><section class="panel"><h2>표결 기록</h2><table class="table"><thead><tr><th>위원</th><th>최초</th><th>최종</th>'+(r.runoff?'<th>결선</th>':'')+'</tr></thead><tbody>'+r.votes.map((v,i)=>'<tr><td>'+v.name+'</td><td>'+label(v.initial??v.vote)+'</td><td>'+label(v.vote)+'</td>'+(r.runoff?'<td>'+label(r.runoff[i].vote)+'</td>':'')+'</tr>').join('')+'</tbody></table><p class="muted">일곱 위원 중 과반이 찬성한 안으로 의결합니다. 과반이 없을 때는 득표 상위 두 안의 게임 내 결선을 사용합니다.</p></section><section class="panel"><h2>'+months+'개월 뒤</h2><table class="table impact-table"><thead><tr><th scope="col">지표</th><th>회의 전</th><th>결과</th><th>동결 대비</th><th>무충격 대비</th></tr></thead><tbody>'+changes.map(k=>'<tr><th scope="row">'+metrics[k][0]+'</th><td>'+value(k,o[k])+'</td><td>'+value(k,s[k])+'</td><td>'+difference(k,s,held)+'</td><td>'+difference(k,s,withoutShocks)+'</td></tr>').join('')+'</tbody></table><p class="muted">동결 대비는 이번 회의의 결정 효과입니다. 무충격 대비는 같은 금리에서 외부 충격을 빼고 비교한 값입니다. 두 차이는 상호작용을 포함합니다.</p><p>경기를 자극하거나 누르지 않는 모형 금리와의 차이 '+signed(r.rate-neutralRate)+'%p · 기존 금리 수준과 금융 여건은 다음 달에도 영향을 줍니다.</p></section></div>'+priorPolicy(r)+(r.poll?politicalReport(r.poll,'국민 평가 · 정책 신뢰 '+r.market.trust+'/100'):'')+'<div id="comparison">'+comparison(r)+'</div>';
+ const macroO=derivedMacro(o);
+ const macroS=derivedMacro(s,o);
+
+ const resultDashboard='<section class="panel policy-result-dashboard" aria-label="정책 결정 전후 비교">'
+  +'<div class="eyebrow">정책 결정 전후 경제지표 변화 및 요인 분해</div>'
+  +'<div class="result-rate-banner">'
+  +'<div class="r-banner-main">기준금리 <strong>'+value('rate',o.rate)+' → '+value('rate',r.rate)+'</strong> ('+signed(r.change)+'%p '+label(r.change)+')</div>'
+  +'<div class="r-banner-sub">총재 제안 '+label(r.proposal)+' · 위원회 의결 '+label(r.change)+' ('+r.votes.length+'인 표결) · 향후 물가 전망 '+r.forecast+'</div>'
+  +'</div>'
+  +'<div class="result-cards-grid">'
+  +'<div class="result-card"><span class="rc-label">소비자물가 상승률</span><div class="rc-numbers"><strong>'+o.inflation.toFixed(2)+'%</strong> → <strong>'+s.inflation.toFixed(2)+'%</strong></div><div class="rc-badge '+(s.inflation>o.inflation?'badge-up':'badge-down')+'">'+scoreChange('inflation',o.inflation,s.inflation)+' (2% 목표 대비 '+(s.inflation>=2?'+':'')+(s.inflation-2).toFixed(2)+'%p)</div></div>'
+  +'<div class="result-card"><span class="rc-label">실질 GDP 성장률 전망</span><div class="rc-numbers"><strong>'+macroO.gdpForecast.toFixed(1)+'%</strong> → <strong>'+macroS.gdpForecast.toFixed(1)+'%</strong></div><div class="rc-badge '+(macroS.gdpForecast>=macroO.gdpForecast?'badge-up':'badge-down')+'">'+(macroS.gdpForecast>=macroO.gdpForecast?'+':'')+(macroS.gdpForecast-macroO.gdpForecast).toFixed(1)+'%p (GDP갭 '+macroS.gdpGap.toFixed(1)+'%)</div></div>'
+  +'<div class="result-card"><span class="rc-label">달러당 원화값</span><div class="rc-numbers"><strong>'+Math.round(o.fx).toLocaleString('ko-KR')+'원</strong> → <strong>'+Math.round(s.fx).toLocaleString('ko-KR')+'원</strong></div><div class="rc-badge">'+scoreChange('fx',o.fx,s.fx)+'</div></div>'
+  +'<div class="result-card"><span class="rc-label">금융위험 지수</span><div class="rc-numbers"><strong>'+o.stress.toFixed(0)+'</strong> → <strong>'+s.stress.toFixed(0)+'</strong></div><div class="rc-badge">'+scoreChange('stress',o.stress,s.stress)+' (가계신용 '+s.debt.toFixed(1)+'%)</div></div>'
+  +'</div>'
+  +'<div class="result-split-panel">'
+  +'<div class="split-header"><strong>정책 효과 vs 외부 충격 요인 분해</strong> <small class="muted">(인과관계 분리 파악)</small></div>'
+  +'<div class="split-grid">'
+  +'<div class="split-col"><span>물가 변화 분해: </span><strong>순수 금리 결정 효과 '+difference('inflation',s,held)+'</strong> · <strong>외부 충격 영향 '+difference('inflation',s,withoutShocks)+'</strong></div>'
+  +'<div class="split-col"><span>성장 변화 분해: </span><strong>순수 금리 결정 효과 '+difference('growth',s,held)+'</strong> · <strong>외부 충격 영향 '+difference('growth',s,withoutShocks)+'</strong></div>'
+  +'</div>'
+  +'<p class="muted" style="margin:8px 0 0;font-size:12px">※ 동결 대비는 이번 금리 결정의 순수 정책 효과이며, 무충격 대비는 유가·미연준 등 대외 충격의 영향입니다. 단순한 지표 관측 시점 일치를 정책 인과관계로 단정하지 않도록 분리하여 검증합니다.</p>'
+  +'</div>'
+  +'</section>';
+
+ return '<div class="eyebrow">'+r.date+' / 통화정책방향 의결</div><h1>기준금리 '+value('rate',r.rate)+'</h1><p>총재 제안 '+label(r.proposal)+' · 위원회 결정 '+label(r.change)+' · 물가 전망 '+r.forecast+'</p>'+(r.proposal!==r.change?'<aside class="verdict-turn"><strong>총재 제안 미채택</strong><p>총재는 '+label(r.proposal)+'을 제안했습니다. 실제 적용 금리는 '+value('rate',r.rate)+'입니다.</p></aside>':'')+'<div class="advance-action">'+button('next','신문 1면 보기')+'</div>'+resultDashboard+marketPanel(r)+goalOutcome(r)+watchAfter(r)+debateRecord(r)+'<div class="grid"><section class="panel"><h2>표결 기록</h2><table class="table"><thead><tr><th>위원</th><th>최초</th><th>최종</th>'+(r.runoff?'<th>결선</th>':'')+'</tr></thead><tbody>'+r.votes.map((v,i)=>'<tr><td>'+v.name+'</td><td>'+label(v.initial??v.vote)+'</td><td>'+label(v.vote)+'</td>'+(r.runoff?'<td>'+label(r.runoff[i].vote)+'</td>':'')+'</tr>').join('')+'</tbody></table><p class="muted">일곱 위원 중 과반이 찬성한 안으로 의결합니다. 과반이 없을 때는 득표 상위 두 안의 게임 내 결선을 사용합니다.</p></section><section class="panel"><h2>'+months+'개월 뒤 상세 지표</h2><table class="table impact-table"><thead><tr><th scope="col">지표</th><th>회의 전</th><th>결과</th><th>동결 대비</th><th>무충격 대비</th></tr></thead><tbody>'+changes.map(k=>'<tr><th scope="row">'+metrics[k][0]+'</th><td>'+value(k,o[k])+'</td><td>'+value(k,s[k])+'</td><td>'+difference(k,s,held)+'</td><td>'+difference(k,s,withoutShocks)+'</td></tr>').join('')+'</tbody></table><p class="muted">동결 대비는 이번 회의의 결정 효과입니다. 무충격 대비는 같은 금리에서 외부 충격을 빼고 비교한 값입니다. 두 차이는 상호작용을 포함합니다.</p><p>경기를 자극하거나 누르지 않는 모형 금리와의 차이 '+signed(r.rate-neutralRate)+'%p · 기존 금리 수준과 금융 여건은 다음 달에도 영향을 줍니다.</p></section></div>'+priorPolicy(r)+(r.poll?politicalReport(r.poll,'국민 평가 · 정책 신뢰 '+r.market.trust+'/100'):'')+'<div id="comparison">'+comparison(r)+'</div>';
 }
 function log(){
  return '<section class="panel"><div class="eyebrow">총재실 기록</div><h2>정책 일지</h2>'+(game.records.length?'<table class="table"><thead><tr><th>회의</th><th>제안</th><th>의결 금리</th><th>물가 전망</th></tr></thead><tbody>'+game.records.map(r=>'<tr><td>'+r.date+'</td><td>'+label(r.proposal)+'</td><td>'+value('rate',r.rate)+'</td><td>'+r.forecast+'</td></tr>').join('')+'</tbody></table>':'<p>첫 회의가 끝나면 이곳에 정책 기록이 쌓입니다.</p>')+'<p class="muted">재현 시드 '+game.seed+'</p></section>';
@@ -405,7 +642,8 @@ function lastPolicyReview(analysis){
  (d?'<p>'+d.target+' 조건부 점도표 중앙값 '+value('rate',d.median)+' · 11월 발표 뒤 시장 예상 '+(d.expected===null?'기록 없음':value('rate',d.expected))+' · 후임 경로의 가정 금리 '+value('rate',d.successorRate)+'</p><p class="muted">점도표와 시장 예상은 인계 시점의 소통 기록입니다. 후임 금리는 시뮬레이션 가정입니다.</p>':'')+'</section>';
 }
 function watchNumbers(f){
- return '<div class="watch-probabilities">'+watchOutcomes.map(k=>'<span class="watch-'+k+'">'+watchOutcomeLabel(k)+' <strong>'+f.probabilities[k]+'%</strong></span>').join('')+'</div><div class="watch-bar" aria-hidden="true">'+watchOutcomes.map(k=>'<i class="watch-'+k+'" style="width:'+f.probabilities[k]+'%"></i>').join('')+'</div>';
+ return '<div class="watch-probabilities">'+watchOutcomes.map(k=>'<span class="watch-'+k+'">'+watchOutcomeLabel(k)+' <strong>'+f.probabilities[k]+'%</strong></span>').join('')+'</div>'
+  +'<div class="watch-bar watch-bar-infographic" aria-label="시장 전망 확률 누적 막대">'+watchOutcomes.map(k=>'<div class="watch-bar-seg watch-'+k+'" style="width:'+f.probabilities[k]+'%" title="'+watchOutcomeLabel(k)+' '+f.probabilities[k]+'%"><span class="seg-text">'+(f.probabilities[k]>=15?watchOutcomeLabel(k)+' '+f.probabilities[k]+'%':f.probabilities[k]>=8?f.probabilities[k]+'%':'')+'</span></div>').join('')+'</div>';
 }
 function watchForecastPanel(f,previous,compact=false){
  if(!f)return '';
@@ -417,7 +655,7 @@ function watchForecastPanel(f,previous,compact=false){
  const delta=previous?watchOutcomes.map(k=>watchOutcomeLabel(k)+' '+signed(f.probabilities[k]-previous.probabilities[k])+'%p').join(' · '):'';
  const factors=(f.factors??[]).map(x=>'<li>'+x.name+' '+(x.value>.03?'요인이 금리 인상 전망에 힘을 보탰습니다.':x.value<-.03?'요인이 금리 인하 전망에 힘을 보탰습니다.':'요인의 영향은 작았습니다.')+'</li>').join('');
  return '<section class="panel watch-panel"><div class="eyebrow">BOK워치 · 2027 가상 시장</div><h2>'+f.date+' 금통위</h2><p class="muted">관측 기준 '+f.asOf+' · 회의까지 '+f.span+'일</p><div class="watch-hero"><strong>'+probability+'%</strong><span>'+lead+'</span></div>'+close+watchNumbers(f)+'<p>시장 예상 기준금리 <strong>'+value('rate',f.expected)+'</strong></p><p>현재 기준금리 '+value('rate',f.rate)+'</p>'+
- (compact?'<p class="muted">주요 요인 · '+(f.factors?.[0]?.name??'공개 시장 지표')+'</p><button type="button" class="secondary" data-view="watch">시장 전망 자세히</button>':(delta?'<p>직전 발표 뒤 대비 '+delta+'</p>':'')+'<h3>전망을 움직인 요인</h3><ul>'+factors+'</ul><details class="watch-pressure"><summary>보조 지표 · 단기 인상 압력</summary><p class="muted">0~100 지수 · 7일 '+f.pressure7+' · 30일 '+f.pressure30+'. 다음 회의 확률과 별도로 표시합니다. 실제 BOK워치 서비스와 별개로 게임 지표를 사용합니다.</p></details>')+'</section>';
+ (compact?'<p class="muted">주요 요인 · '+(f.factors?.[0]?.name??'공개 시장 지표')+'</p><button type="button" class="secondary" data-view="watch">시장 전망 자세히</button>':(delta?'<p>직전 발표 뒤 대비 '+delta+'</p>':'')+'<h3>전망을 움직인 요인</h3><ul>'+factors+'</ul><details class="watch-pressure"><summary>보조 지표 · 단기 인상 압력</summary><p class="muted">0~100 지수 · 7일 '+f.pressure7+' · 30일 '+f.pressure30+'. 다음 회의 확률과 별도로 표시합니다. 실제 BOK워치 서비스와 별개로 게임 지표를 사용합니다.</p></details>')+'<p class="muted watch-disclaimer">※ BOK워치 확률은 게임 내 금융시장 기대 모형의 가상 산출 결과이며, 한국은행 공식 발표가 아닙니다.</p></section>';
 }
 function watchPlot(points){
  if(points.length<2)return '';
@@ -439,11 +677,20 @@ function watchAfter(r){
  const snapshots=w.next?([['의결 공개',w.next.decision],...(r.dots?[['점도표 공개',w.next.dots]]:[]),['기자회견 뒤',w.next.press]]):[];
  const table=snapshots.length?'<table class="table"><thead><tr><th>다음 회의 전망 시점</th><th>인상</th><th>동결</th><th>인하</th></tr></thead><tbody>'+snapshots.map(([stage,f])=>'<tr><td>'+stage+'</td>'+watchOutcomes.map(k=>'<td>'+f.probabilities[k]+'%</td>').join('')+'</tr>').join('')+'</tbody></table>':'<p>후임 경로에 대한 시장이 예상하는 금리 · 의결 공개 '+value('rate',w.terminalAnchor.decision)+' · 점도표 공개 '+value('rate',w.terminalAnchor.dots)+' · 기자회견 뒤 '+value('rate',w.terminalAnchor.press)+'</p>';
  const headline=w.headline?'<aside class="verdict-turn"><div class="eyebrow">시장 속보</div><h3>시장의 예상과 엇갈린 '+watchOutcomeLabel(w.actual)+' 의결</h3><p>BOK워치가 사전에 발표한 '+watchOutcomeLabel(w.before.favorite)+' 확률 '+w.before.probabilities[w.before.favorite]+'%.</p></aside>':'';
+
+ const compareInfographic='<div class="watch-compare-box">'
+  +'<div class="watch-step-row"><span class="watch-step-label">의결 직전 시장 전망</span>'+watchNumbers(w.before)+'</div>'
+  +'<div class="watch-surprise-badge '+(Math.abs(w.surprise)<0.05?'surprise-match':'surprise-diverge')+'">'
+  +(Math.abs(w.surprise)<0.05?'시장 예상 일치 ('+watchOutcomeLabel(w.actual)+')':'시장 예상과 엇갈림 (서프라이즈 '+signed(w.surprise)+'%p)')
+  +'</div>'
+  +'</div>';
+
  return '<section class="panel watch-panel"><div class="eyebrow">BOK워치 · 가상 시장</div><h2>예상과 의결의 차이</h2>'+headline+(r.pressSummary?'<aside class="verdict-turn"><h3>'+r.pressSummary.headline+'</h3><blockquote>'+r.pressSummary.quote+'</blockquote></aside>':'')+
+ compareInfographic+
  '<p>회의 직전 시장 우세 전망 '+watchOutcomeLabel(w.before.favorite)+' '+w.before.probabilities[w.before.favorite]+'% · 실제 '+watchOutcomeLabel(w.actual)+' (사전 '+w.actualProbability+'%) · 예상 대비 금리 '+signed(w.surprise)+'%p</p>'+
  (r.noActionRate!==undefined&&!r.review?'<p class="muted">총재가 동결표를 던지고 회의 내 개입을 제외한 비교 표결 '+value('rate',r.noActionRate)+' · 같은 회의 전 경제·시장 상태</p>':'')+
  '<div class="watch-reaction"><span>단기금리 '+signed(q.shortBps)+'bp</span><span>장기 국채금리 '+signed(q.longBps)+'bp</span><span>원/달러 '+signed(q.fxWon)+'원</span><span>주가 '+signed(q.stocksPct)+'%</span><span>변동성 +'+q.volatility.toFixed(2)+'점</span></div>'+table+
- '<p class="muted">발표 직후 가상 시세 반응입니다. 다음 회의 전망 비교는 같은 관측 시점에서 공개 정보만 순서대로 바꿉니다.</p></section>';
+ '<p class="muted">발표 직후 가상 시세 반응입니다. 다음 회의 전망 비교는 같은 관측 시점에서 공개 정보만 순서대로 바꿉니다. BOK워치는 게임 모형 추정치입니다.</p></section>';
 }
 function watchEnd(analysis){
  const w=analysis.watch;
@@ -555,6 +802,42 @@ function economicHud(){
  const item=k=>'<span><small>'+(metrics[k]?.[0]??scoreLabels[k])+'</small> <strong>'+scoreValue(k,now[k])+'</strong><small> '+scoreChange(k,prev[k],now[k])+'</small></span>';
  return '<section class="economic-hud" aria-label="상시 경제지표"><div class="hud-core"><span><small>관측 기준</small> <strong>'+observed+'</strong></span>'+['rate','inflation','fx'].map(item).join('')+button('scorecard','경제 성적표',false)+'</div><div class="hud-more" aria-label="경기와 정책 평가"><span><small>성장률 전망</small> <strong>'+now.gdpForecast.toFixed(1)+'%</strong><small> '+(now.gdpRevision>=0?'+':'')+now.gdpRevision.toFixed(1)+'%p</small></span>'+['approval','trust'].map(item).join('')+'</div></section>';
 }
+function scoreSummaryInfographic(){
+ const snapshots=scoreSnapshots();
+ const [origin,prior,now]=snapshots;
+ const keys=[
+  ['rate','한국은행 기준금리','통화정책 기준',scoreValue('rate',now.rate),scoreChange('rate',prior.rate,now.rate),scoreChange('rate',origin.rate,now.rate)],
+  ['inflation','소비자물가 상승률','2% 물가목표 기준',scoreValue('inflation',now.inflation),scoreChange('inflation',prior.inflation,now.inflation),scoreChange('inflation',origin.inflation,now.inflation)],
+  ['gdpForecast','실질 GDP 성장률 전망',now.gdpGapStatus,now.gdpForecast.toFixed(1)+'%',scoreChange('gdpForecast',prior.gdpForecast,now.gdpForecast),scoreChange('gdpForecast',origin.gdpForecast,now.gdpForecast)],
+  ['fx','달러당 원화값','외환시장 환율',scoreValue('fx',now.fx),scoreChange('fx',prior.fx,now.fx),scoreChange('fx',origin.fx,now.fx)],
+  ['debt','가계신용 증가율','금융불균형 척도',scoreValue('debt',now.debt),scoreChange('debt',prior.debt,now.debt),scoreChange('debt',origin.debt,now.debt)],
+  ['stress','금융위험 지수','시장 스트레스 (0~100)',scoreValue('stress',now.stress),scoreChange('stress',prior.stress,now.stress),scoreChange('stress',origin.stress,now.stress)]
+ ];
+
+ const cards=keys.map(([k,name,sub,val,pChg,oChg])=>{
+  return '<div class="summary-card">'
+   +'<div class="sc-head"><span class="sc-name">'+name+'</span><small class="sc-sub">'+sub+'</small></div>'
+   +'<strong class="sc-val">'+val+'</strong>'
+   +'<div class="sc-changes">'
+   +'<span class="sc-pill"><small>직전 대비</small> '+pChg+'</span>'
+   +'<span class="sc-pill"><small>취임 대비</small> '+oChg+'</span>'
+   +'</div></div>';
+ }).join('');
+
+ const dilemma=policyDilemmaInfographic(game.state, game.records.at(-1)?.origin??null);
+
+ return '<div class="score-infographic-wrap">'
+  +dilemma
+  +'<h3>핵심 경제지표 인포그래픽 요약</h3>'
+  +'<div class="summary-cards-grid">'+cards+'</div>'
+  +'</div>';
+}
+
+function scoreTableWithInfographic(){
+ return scoreSummaryInfographic()
+  +'<details class="score-table-details" open><summary>전체 세부 통계표 접기/펼치기</summary>'+scoreTable()+'</details>';
+}
+
 function scoreTable(){
  const snapshots=scoreSnapshots();
  const watch=['result','newspaper','end'].includes(game.phase)?(game.records.at(-1)?.article?.watch??game.records.at(-1)?.watchResult?.next?.press):game.context?.watch??currentWatch(game);
@@ -585,7 +868,17 @@ function scoreTrends(){
  const eventMarks=[...new Set(game.records.flatMap(r=>(r.incidents??[]).map(e=>e.start)))].map(month=>'<circle cx="'+x(month)+'" cy="17" r="4" fill="#a14f38"><title>'+String(month+1)+'월 공개 충격</title></circle>').join('');
  const grid=game.records.map(r=>'<path d="M'+x(r.origin.month)+' 18V112" stroke="#9b8662" stroke-dasharray="3 3"><title>'+r.date+' 의결 '+scoreValue('rate',r.rate)+'</title></path>').join('');
  const path=items.map(s=>x(s.month)+','+(112-94*(s[k]-min)/(max-min||1))).join(' ');
- return '<section class="score-trend"><h3>'+(metrics[k]?.[0]??scoreLabels[k])+'</h3><svg viewBox="0 0 400 132" role="img" aria-label="모형 관측 추이 및 의결 시점">'+grid+eventMarks+'<polyline points="'+path+'" fill="none" stroke="#316f6c" stroke-width="3"/></svg><p>취임 '+scoreValue(k,ns[0])+' · 최근 '+scoreValue(k,ns.at(-1))+'</p></section>';
+
+ let refLine='';
+ if(k==='inflation'){
+  const yRef=112-94*(2.0-min)/(max-min||1);
+  if(yRef>=18&&yRef<=112)refLine='<line x1="12" y1="'+yRef+'" x2="388" y2="'+yRef+'" stroke="#b04337" stroke-dasharray="3 3" stroke-width="1.5"/><text x="16" y="'+(yRef-4)+'" fill="#b04337" font-size="10" font-weight="600">2.0% 물가안정목표</text>';
+ }else if(k==='rate'){
+  const yRef=112-94*(2.5-min)/(max-min||1);
+  if(yRef>=18&&yRef<=112)refLine='<line x1="12" y1="'+yRef+'" x2="388" y2="'+yRef+'" stroke="#8b7245" stroke-dasharray="3 3" stroke-width="1.5"/><text x="16" y="'+(yRef-4)+'" fill="#8b7245" font-size="10" font-weight="600">2.50% 중립금리</text>';
+ }
+
+ return '<section class="score-trend"><h3>'+(metrics[k]?.[0]??scoreLabels[k])+'</h3><svg viewBox="0 0 400 132" role="img" aria-label="모형 관측 추이 및 의결 시점">'+grid+eventMarks+refLine+'<polyline points="'+path+'" fill="none" stroke="#316f6c" stroke-width="3"/></svg><div class="row muted"><span>취임 '+scoreValue(k,ns[0])+' (최저 '+scoreValue(k,min)+')</span><span>최근 '+scoreValue(k,ns.at(-1))+' (최고 '+scoreValue(k,max)+')</span></div></section>';
  }).join('')+'<h3>의결과 공개 충격 기록</h3><ul>'+eventRows+'</ul>';
 }
 function showScorecard(trigger){
@@ -593,8 +886,8 @@ function showScorecard(trigger){
  const parent=document.querySelector('dialog[open]:last-of-type')??document.body;
  const dlg=document.createElement('dialog');dlg.className='scorecard';
  dlg.setAttribute('aria-label','경제 성적표');
- dlg.innerHTML='<div class="row"><h2>경제 성적표</h2><form method="dialog"><button class="secondary">닫기</button></form></div><div class="score-tabs" role="group" aria-label="성적표 보기"><button type="button" data-score-tab="0" aria-pressed="true">현재와 비교</button><button type="button" data-score-tab="1" aria-pressed="false">회의 목표</button><button type="button" data-score-tab="2" aria-pressed="false">지표 추이</button></div><div class="score-content">'+scoreTable()+'</div>';
- const tabs=[scoreTable,scoreGoals,scoreTrends];
+ dlg.innerHTML='<div class="row"><h2>경제 성적표</h2><form method="dialog"><button class="secondary">닫기</button></form></div><div class="score-tabs" role="group" aria-label="성적표 보기"><button type="button" data-score-tab="0" aria-pressed="true">현재와 비교</button><button type="button" data-score-tab="1" aria-pressed="false">회의 목표</button><button type="button" data-score-tab="2" aria-pressed="false">지표 추이</button></div><div class="score-content">'+scoreTableWithInfographic()+'</div>';
+ const tabs=[scoreTableWithInfographic,scoreGoals,scoreTrends];
  dlg.addEventListener('click',e=>{
  const tab=e.target.closest('[data-score-tab]');if(!tab)return;
  for(const b of dlg.querySelectorAll('[data-score-tab]'))b.setAttribute('aria-pressed',String(b===tab));
