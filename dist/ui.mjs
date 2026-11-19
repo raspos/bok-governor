@@ -659,7 +659,9 @@ function councilSpeechTurnPanel(cue=''){
    +'<button type="button" class="gov-opt-btn cut '+(proposal===-0.25?'active cut':'')+'" data-action="gov-propose--0.25"><strong>0.25%p 인하</strong><small>'+value('rate',s.rate-0.25)+'</small></button>'
    +'<button type="button" class="gov-opt-btn hold '+(proposal===0?'active hold':'')+'" data-action="gov-propose-0"><strong>동결</strong><small>'+value('rate',s.rate)+'</small></button>'
    +'<button type="button" class="gov-opt-btn hike '+(proposal===0.25?'active hike':'')+'" data-action="gov-propose-0.25"><strong>0.25%p 인상</strong><small>'+value('rate',s.rate+0.25)+'</small></button>'
-   +'</div></div>'
+   +'</div>'
+   +'<div class="gov-card-subtext"><button type="button" class="btn-subtext-link" data-action="step-2" title="3대 시나리오 상세 전망 비교표 보기">📊 3대 시나리오 상세 비교표 (안건 3/6) ↓</button></div>'
+   +'</div>'
    +'<div class="gov-deck-card">'
    +'<div class="deck-card-title"><span class="card-num">3</span> 제시할 핵심 근거</div>'
    +'<div class="gov-choice-group">'
@@ -858,7 +860,7 @@ function meeting(){
  (selectedMember!==null?dialoguePanel():councilSpeechTurnPanel(cue))+
  '<details class="council-agenda"><summary>회의 안건 · '+(meetingStep+1)+'/6 · '+meetingSteps[meetingStep]+'</summary><ol>'+meetingSteps.map((title,n)=>'<li '+(n===meetingStep?'aria-current="step"':'')+'>'+stepButton(n,(n+1)+'. '+title)+'</li>').join('')+'</ol></details>'+dossier+
  panel(1,goalPanel())+
- '<form id="decision" class="panel decision-desk">'+panel(2,'<fieldset><legend>총재가 제안할 기준금리</legend>'+radio('proposal',proposalOptions,proposal)+'</fieldset><div id="policy-preview" aria-live="polite">'+policyPreview()+'</div>')+
+ '<form id="decision" class="panel decision-desk">'+panel(2,'<div class="agenda-deck-notice"><span class="badge-synced">의장 패키지 실시간 연동</span><h3>3대 금리안(인하·동결·인상)별 5대 지표 파급효과 대조</h3><p class="muted">상단 의장 패키지의 기준금리 제안안('+value('rate',s.rate+proposal)+', '+label(proposal)+')과 실시간 연동되어 3대 시나리오의 경로를 비교합니다. 상단 카드 또는 아래 선택지에서 제안안을 변경할 수 있습니다.</p></div><fieldset><legend>총재가 제안할 기준금리</legend>'+radio('proposal',proposalOptions,proposal)+'</fieldset><div id="policy-preview" aria-live="polite">'+policyPreview()+'</div>')+
  panel(4,grounds)+
  panel(5,required?'<h2>기준금리 '+value('rate',s.rate+proposal)+' 제안</h2><p>현재 금리 '+value('rate',s.rate)+' · '+label(proposal)+' · 제시한 근거 '+briefs[focus]+'</p><fieldset><legend>향후 6개월 물가 전망</legend>'+radio('forecast',['하락','보합','상승'].map(x=>[x,x]),forecast)+'</fieldset><button class="primary" type="submit">금리안 제출 및 표결</button>':'<h2>먼저 이번 회의의 목표를 정하세요</h2>'+stepButton(1,'수치 목표 선택'))+'</form>'+
  (meetingStep===4?'<div class="council-ability">'+abilityPanel()+'</div>':'')+shortcuts+controls+'</section>';
