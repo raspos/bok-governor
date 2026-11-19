@@ -786,10 +786,298 @@ h1,.hero h1,.council-title h1,.title-copy .title-wordmark{font-family:var(--type
 /* 회의 안건 연동 알림 */
 .agenda-deck-notice,.agenda-deck-sync-notice{background:#142236;border:1px solid #2b4260;border-radius:4px;padding:12px 16px;margin-bottom:12px}
 .agenda-deck-notice h3,.agenda-deck-sync-notice h3{margin:4px 0;color:#ffdca1;font-size:1.1rem}
+.agenda-deck-notice .muted,.agenda-deck-sync-notice .muted{color:#a4bad2}
 .badge-synced{background:#234423;color:#c8e6c9;font-size:.72rem;font-weight:700;padding:2px 6px;border-radius:2px;display:inline-block;margin-bottom:4px}
 .gov-card-subtext{margin-top:.45rem;text-align:center}
 .btn-subtext-link{background:transparent;border:none;color:#9cb5cf;font-size:.76rem;cursor:pointer;padding:2px 4px;text-decoration:underline;text-underline-offset:2px}
 .btn-subtext-link:hover{color:#ffdca1}
+
+/* ============================================================
+   금통위 회의실(council-scene) 테마 통일 및 고대비(접근성) 타이포그래피
+   - 밝은 바탕으로 인한 글자 안 보임 문제 전면 해결
+   - 금통위 내 모든 패널/카드/선택지를 프리미엄 다크 네이비 테마로 통일
+   - 텍스트 대비율 7:1 이상 확보 (금빛/크림색/화이트/시안 텍스트)
+   ============================================================ */
+.council-scene{
+ padding-bottom:4.5rem;
+ margin-bottom:2rem;
+}
+.council-scene .panel,
+.council-scene .decision-desk,
+.council-scene .goal-panel,
+.council-scene .ability-panel{
+ background:#121e2f;
+ border:1px solid #2d425c;
+ color:#e8f0f8;
+ border-radius:6px;
+ box-shadow:0 2px 10px rgba(0,0,0,.35);
+}
+.council-scene .panel h2,
+.council-scene .panel h3,
+.council-scene .panel h4,
+.council-scene legend{
+ color:#ffdca1;
+ font-weight:750;
+}
+.council-scene .panel .eyebrow{
+ color:#eac783;
+ font-weight:700;
+}
+.council-scene .panel p{
+ color:#d5e2f0;
+}
+.council-scene .panel .muted,
+.council-scene .panel small,
+.council-scene .muted{
+ color:#a4bad2;
+}
+.council-scene .goal-number strong{
+ color:#ffffff;
+}
+
+/* 금통위 내 라디오 선택지(choice label) 고대비 다크 스타일 */
+.council-scene .choice label{
+ background:#18283c;
+ border:1px solid #385172;
+ color:#e4edf7;
+ border-radius:4px;
+ padding:9px 12px;
+ font-size:.92rem;
+ font-weight:550;
+ transition:all .15s ease;
+}
+.council-scene .choice label:hover{
+ background:#223753;
+ border-color:#5c7ca6;
+ color:#ffffff;
+}
+.council-scene .choice label:has(:checked){
+ background:#263e61;
+ border-color:#edd188;
+ color:#ffffff;
+ font-weight:700;
+ box-shadow:0 0 8px rgba(237,209,136,.3);
+}
+
+/* 금통위 내 3대 금리안 시나리오 비교 카드 (policyPreview) */
+.council-scene .rate-scenario-card{
+ background:#142234;
+ border:1px solid #2d435e;
+ color:#e6edf5;
+ border-radius:4px;
+}
+.council-scene .rate-scenario-card.forecast-selected{
+ background:#1a2f4a;
+ border:2px solid #eac783;
+ box-shadow:0 0 10px rgba(234,199,131,.35);
+}
+.council-scene .rate-scenario-card .sc-rate-title h4{
+ color:#ffffff;
+ font-size:1.24rem;
+}
+.council-scene .rate-scenario-card .sc-header{
+ border-bottom-color:#2b405a;
+}
+.council-scene .rate-scenario-card .sc-row{
+ border-bottom:1px dashed #22354c;
+ color:#e6edf5;
+}
+.council-scene .rate-scenario-card .sc-val{
+ color:#ffffff;
+ font-weight:750;
+}
+.council-scene .rate-scenario-card .sc-name{
+ color:#a4bad2;
+ font-weight:550;
+}
+.council-scene .sc-delta.d-up{color:#ff8e82}
+.council-scene .sc-delta.d-down{color:#72c3fc}
+.council-scene .sc-delta.d-zero{color:#9eb5cf}
+.council-scene .rate-scenario-card .sc-goal-row{
+ background:rgba(234,199,131,.16);
+ font-weight:750;
+}
+.council-scene .rate-scenario-card .sc-target-range{
+ color:#ffdca1;
+ border-top:1px solid #283e58;
+}
+.council-scene .rate-scenario-card .sc-target-range strong{
+ color:#ffffff;
+}
+.council-scene .sc-selected-tag{
+ font-size:.72rem;
+ font-weight:750;
+ color:#ffdca1;
+ background:#382711;
+ border:1px solid #8a6428;
+ padding:2px 7px;
+ border-radius:3px;
+}
+.council-scene .sc-premise-box{
+ background:#0f1926;
+ border:1px solid #263c56;
+ color:#b0c6dd;
+ border-radius:4px;
+ line-height:1.55;
+}
+.council-scene .sc-premise-box strong{
+ color:#ffdca1;
+}
+.council-scene .sc-summary-box{
+ background:#111d2c;
+ border:1px solid #263d58;
+ color:#d8e5f2;
+ border-radius:4px;
+}
+.council-scene .sc-summary-box p{
+ color:#d8e5f2;
+}
+.council-scene .sc-summary-box strong{
+ color:#ffdca1;
+}
+.council-scene .sc-summary-box .muted{
+ color:#a4bad2;
+}
+.council-scene .sc-difficulty-note{
+ color:#ffdca1;
+ font-weight:600;
+}
+
+/* 금리안 뱃지 고대비 스타일 */
+.sc-badge.badge-cut{background:#14354f;color:#99d6ff;border:1px solid #2c648d}
+.sc-badge.badge-hold{background:#3b2f15;color:#ffdca1;border:1px solid #7a602e}
+.sc-badge.badge-hike{background:#4a1c18;color:#ffbeaf;border:1px solid #8d382e}
+
+/* 금통위 내 버튼 스타일 */
+.council-scene button.secondary{
+ background:#17273c;
+ border:1px solid #3c5678;
+ color:#e4edf7;
+ border-radius:4px;
+ padding:9px 16px;
+ font-weight:650;
+ transition:all .15s ease;
+}
+.council-scene button.secondary:hover{
+ background:#233956;
+ border-color:#eac783;
+ color:#ffffff;
+}
+
+/* 금통위 내 조사국 경제보고서 (dossier) 고대비 다크 스타일 */
+.council-scene .council-report{
+ background:#111d2d;
+ border:1px solid #283c54;
+ border-radius:6px;
+ margin:.8rem 0;
+ color:#e8f0f8;
+}
+.council-scene .council-report .metrics{
+ background:#243850;
+ border:1px solid #2c4464;
+}
+.council-scene .council-report .metric{
+ background:#132133;
+ color:#ffffff;
+ border:none;
+}
+.council-scene .council-report .metric strong{
+ color:#ffffff;
+}
+.council-scene .council-report .metric span{
+ color:#a4bad2;
+ font-weight:550;
+}
+.council-scene .council-report .watch-panel{
+ background:#121e2f;
+ border:1px solid #283c54;
+ color:#e8f0f8;
+}
+.council-scene .council-report .watch-hero strong{
+ color:#ffdca1;
+}
+.council-scene .council-report .watch-compare-box{
+ background:#0e1724;
+ border:1px solid #243850;
+ color:#d5e2f0;
+}
+.council-scene .council-report .watch-step-label{
+ color:#a4bad2;
+}
+.council-scene .council-report .watch-disclaimer{
+ color:#9cb5cf;
+}
+.council-scene .council-report .agenda{
+ background:#121e2f;
+ border:1px solid #283c54;
+ color:#e8f0f8;
+}
+.council-scene .council-report .agenda h2{
+ color:#ffdca1;
+}
+.council-scene .council-report .agenda p{
+ color:#d5e2f0;
+}
+.council-scene .council-report .infographic-details{
+ background:#0e1724;
+ border:1px solid #243850;
+ color:#e8f0f8;
+}
+.council-scene .council-report .triad-item{
+ background:#142235;
+ border-color:#2a3d56;
+}
+.council-scene .council-report .triad-topic{
+ color:#a4bad2;
+}
+.council-scene .council-report .triad-val{
+ color:#ffffff;
+}
+.council-scene .council-report .info-card{
+ background:#142235;
+ border-color:#2a3d56;
+}
+.council-scene .council-report .info-tag{
+ color:#ffdca1;
+}
+.council-scene .council-report .info-sub{
+ color:#a4bad2;
+}
+.council-scene .council-report .info-val-huge{
+ color:#ffffff;
+}
+.council-scene .council-report .info-visual-box{
+ background:#0f1926;
+ border-color:#243850;
+}
+.council-scene .council-report .dilemma-box{
+ background:#121f31;
+ border-color:#2c4360;
+}
+.council-scene .council-report .dilemma-header h3{
+ color:#ffdca1;
+}
+.council-scene .council-report .dilemma-desc{
+ color:#d5e2f0;
+}
+
+/* 범용 밝은 바탕(신문/오피스 등) 텍스트 명도/가독성 방어 */
+.panel:not(.council-scene .panel) .muted,
+.panel:not(.council-scene .panel) small{
+ color:#554e42 !important;
+}
+.choice label{
+ color:#192739;
+}
+.sc-summary-box:not(.council-scene .sc-summary-box) .muted{
+ color:#554e42 !important;
+}
+.sc-premise-box:not(.council-scene .sc-premise-box){
+ color:#2b251d;
+}
+.sc-premise-box:not(.council-scene .sc-premise-box) small{
+ color:#383025;
+}
 </style>
   
 </head>
