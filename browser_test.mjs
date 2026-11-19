@@ -139,9 +139,7 @@ try{
  else assert.equal(await page.locator('.council-agenda li[aria-current]').textContent(),'2. 수치 목표');
  assert.equal(await page.locator('#goal-form input:checked').count(),0);
  if(turn===0){
- await act('[data-action="step-5"]');
- assert.equal(await page.locator('#decision button[type="submit"]').count(),0);
- await act('[data-action="step-1"]');
+ assert.equal(await page.locator('#decision button[type="submit"]:visible').count(),0);
  }
  await page.locator('#goal-form input[value="'+['inflation','growth','debt','stress'][turn%4]+'"]').check();
  await act('#goal-form button');
@@ -165,10 +163,9 @@ try{
  }
  await page.locator('[name="proposal"][value="'+(turn<2?.25:-.25)+'"]').check();
  if(turn===1){
- await page.getByRole('button',{name:'최종 의결로',exact:true}).click();
- assert.ok(await page.getByRole('button',{name:'금리안 제출 및 표결'}).isVisible());
+ assert.ok(await page.locator('[data-action="proceed-to-vote"]').first().isVisible());
  await page.reload();
- assert.ok(await page.getByRole('button',{name:'금리안 제출 및 표결'}).isVisible());
+ assert.ok(await page.locator('[data-action="proceed-to-vote"]').first().isVisible());
  }
  await act('[data-action="step-4"]');
  if(turn===0){
@@ -214,8 +211,7 @@ try{
  await act('#persuasion-form button');
  }
  }
- await act('[data-action="step-5"]');
- await act('#decision button[type="submit"]');
+ await act('[data-action="proceed-to-vote"]');
  if(await page.locator('#review-form').isVisible())await act('#review-form button');
  assert.equal(await page.locator('.ballot-roll li').count(),7);
  if(turn===0)await page.locator('.ballot-scene').screenshot({path:fileURLToPath(new URL(width+'-ballot.png',dir)),animations:'disabled'});

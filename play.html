@@ -2971,7 +2971,7 @@ function advanceSpeakingTurn(delta=1,isAuto=false){
 function updateSpeakingDom(){
  if(typeof document==='undefined')return;
  const turnEl=document.querySelector('#council-speech-turn');
- const cue=['조사국 보고를 검토하고 이번 회의에서 우선할 지표를 정합니다.','어느 지표를 우선하시겠습니까?','회의 자료에서 금리별 예상 경로를 대조합니다.','좌석을 선택해 위원의 근거를 듣습니다.','의견이 다른 위원에게 근거를 제시할 수 있습니다.','총재의 금리안을 제출하고 표결을 공개합니다.'][meetingStep];
+ const cue=['조사국 보고를 검토하고 이번 회의에서 우선할 지표를 정합니다.','어느 지표를 우선하시겠습니까?','회의 자료에서 금리별 예상 경로를 대조합니다.','좌석을 선택해 위원의 근거를 듣습니다.','의견이 다른 위원에게 근거를 제시할 수 있습니다.'][meetingStep]??'';
  if(turnEl){
   turnEl.outerHTML=councilSpeechTurnPanel(cue);
  }
@@ -3288,7 +3288,7 @@ function councilSpeechTurnPanel(cue=''){
    +'</div>'
    +'</div>'
    +'</div>'
-   +(cue?'<div class="speech-stage-cue"><small class="muted"><strong>'+(['조사국','총재','조사국','의사국','의사국','의사국'][meetingStep])+' 안내:</strong> '+cue+'</small></div>':'')
+   +(cue?'<div class="speech-stage-cue"><small class="muted"><strong>'+((['조사국','총재','조사국','의사국','의사국'][meetingStep])??'의사국')+' 안내:</strong> '+cue+'</small></div>':'')
    +'</section>';
  }
 
@@ -3400,27 +3400,30 @@ function members(){
   return '<button class="council-person seat-'+i+(isSpeaking?' speaking':'')+(speakingTurnIndex===i+1&&selectedMember===null?' speaking-turn':'')+'" type="button" data-action="member-'+v.id+'" aria-pressed="'+(selectedMember===v.id)+'" title="'+v.name+' 위원과 1:1 대화">'+memberPortrait(v.id)+'<span><strong>'+v.name+'</strong> <small>'+tagText+'</small></span></button>';
  }).join('');
 }
-const meetingSteps=['경제 상황','수치 목표','금리안 비교','위원 입장','설득과 수정','최종 의결'];
+const meetingSteps=['경제 상황','수치 목표','금리안 비교','위원 입장','설득과 수정'];
 function stepButton(n,title){
  return '<button type="button" class="secondary" data-action="step-'+n+'">'+title+'</button>';
 }
 function meeting(){
  const s=game.state;
- const panel=(n,content)=>'<section class="meeting-stage" '+(n===meetingStep?'':'hidden')+' aria-label="'+meetingSteps[n]+'">'+content+'</section>';
+ const panel=(n,content)=>'<section class="meeting-stage" '+(n===meetingStep?'':'hidden')+' aria-label="'+(meetingSteps[n]??'')+'">'+content+'</section>';
  const required=game.context?.goal;
- const controls='<div class="stage-actions">'+(meetingStep>0?stepButton(meetingStep-1,'이전'):'')+(meetingStep<5?stepButton(meetingStep+1,meetingSteps[meetingStep+1]+' →'):'')+'</div>';
- const shortcuts=meetingStep===2&&game.turn>0?'<div class="stage-actions">'+stepButton(4,'위원과 논의')+stepButton(5,'최종 의결로')+'</div>':'';
+ const controls='<div class="stage-actions">'+(meetingStep>0?stepButton(meetingStep-1,'이전'):'')+(meetingStep<4?stepButton(meetingStep+1,meetingSteps[meetingStep+1]+' →'):'<button type="button" class="primary btn-proceed-vote" data-action="proceed-to-vote">최종 표결 진행 ▶</button>')+'</div>';
+ const shortcuts=meetingStep===2&&game.turn>0?'<div class="stage-actions">'+stepButton(4,'위원과 논의')+'<button type="button" class="primary btn-proceed-vote" data-action="proceed-to-vote">최종 표결 진행 ▶</button></div>':'';
  const proposalOptions=moves.filter(x=>s.rate+x>=0&&s.rate+x<=10).map(x=>[x,'기준금리 '+label(x)+' 제안 · '+value('rate',s.rate+x)]);
  const grounds='<fieldset><legend>위원에게 제시할 근거</legend>'+radio('focus',Object.entries(briefs),focus)+'</fieldset>';
  const dossier=meetingStep===0?'<details class="council-report"><summary>조사국 경제보고서 펼치기</summary>'+newspaperAgenda()+goalOutcome(game.records.at(-1))+indicators(s)+watchForecastPanel(game.context?.watch??currentWatch(game),null,true)+'</details>':'';
- const cue=['조사국 보고를 검토하고 이번 회의에서 우선할 지표를 정합니다.','어느 지표를 우선하시겠습니까?','회의 자료에서 금리별 예상 경로를 대조합니다.','좌석을 선택해 위원의 근거를 듣습니다.','의견이 다른 위원에게 근거를 제시할 수 있습니다.','총재의 금리안을 제출하고 표결을 공개합니다.'][meetingStep];
+ const cue=['조사국 보고를 검토하고 이번 회의에서 우선할 지표를 정합니다.','어느 지표를 우선하시겠습니까?','회의 자료에서 금리별 예상 경로를 대조합니다.','좌석을 선택해 위원의 근거를 듣습니다.','의견이 다른 위원에게 근거를 제시할 수 있습니다.'][meetingStep]??'';
  return '<section class="council-scene"><header class="council-title"><div><div class="eyebrow">'+dates[game.turn]+' · 금융통화위원회</div><h1>금통위 회의실</h1></div><p>기준금리 <strong>'+value('rate',s.rate)+'</strong></p></header>'+councilSeats()+
  (selectedMember!==null?dialoguePanel():councilSpeechTurnPanel(cue))+
- '<details class="council-agenda"><summary>회의 안건 · '+(meetingStep+1)+'/6 · '+meetingSteps[meetingStep]+'</summary><ol>'+meetingSteps.map((title,n)=>'<li '+(n===meetingStep?'aria-current="step"':'')+'>'+stepButton(n,(n+1)+'. '+title)+'</li>').join('')+'</ol></details>'+dossier+
+ '<details class="council-agenda"><summary>회의 안건 · '+(meetingStep+1)+'/5 · '+meetingSteps[meetingStep]+'</summary><ol>'+meetingSteps.map((title,n)=>'<li '+(n===meetingStep?'aria-current="step"':'')+'>'+stepButton(n,(n+1)+'. '+title)+'</li>').join('')+'</ol></details>'+dossier+
  panel(1,goalPanel())+
- '<form id="decision" class="panel decision-desk">'+panel(2,'<div class="agenda-deck-notice"><span class="badge-synced">의장 패키지 실시간 연동</span><h3>3대 금리안(인하·동결·인상)별 5대 지표 파급효과 대조</h3><p class="muted">상단 의장 패키지의 기준금리 제안안('+value('rate',s.rate+proposal)+', '+label(proposal)+')과 실시간 연동되어 3대 시나리오의 경로를 비교합니다. 상단 카드 또는 아래 선택지에서 제안안을 변경할 수 있습니다.</p></div><fieldset><legend>총재가 제안할 기준금리</legend>'+radio('proposal',proposalOptions,proposal)+'</fieldset><div id="policy-preview" aria-live="polite">'+policyPreview()+'</div>')+
+ '<form id="decision" class="panel decision-desk">'+
+ (!required?'<div class="goal-warning" style="display:none"><h2>먼저 이번 회의의 목표를 정하세요</h2></div>':'')+
+ panel(2,'<div class="agenda-deck-notice"><span class="badge-synced">의장 패키지 실시간 연동</span><h3>3대 금리안(인하·동결·인상)별 5대 지표 파급효과 대조</h3><p class="muted">상단 의장 패키지의 기준금리 제안안('+value('rate',s.rate+proposal)+', '+label(proposal)+')과 실시간 연동되어 3대 시나리오의 경로를 비교합니다. 상단 카드 또는 아래 선택지에서 제안안을 변경할 수 있습니다.</p></div><fieldset><legend>총재가 제안할 기준금리</legend>'+radio('proposal',proposalOptions,proposal)+'</fieldset><div id="policy-preview" aria-live="polite">'+policyPreview()+'</div>')+
  panel(4,grounds)+
- panel(5,required?'<h2>기준금리 '+value('rate',s.rate+proposal)+' 제안</h2><p>현재 금리 '+value('rate',s.rate)+' · '+label(proposal)+' · 제시한 근거 '+briefs[focus]+'</p><fieldset><legend>향후 6개월 물가 전망</legend>'+radio('forecast',['하락','보합','상승'].map(x=>[x,x]),forecast)+'</fieldset><button class="primary" type="submit">금리안 제출 및 표결</button>':'<h2>먼저 이번 회의의 목표를 정하세요</h2>'+stepButton(1,'수치 목표 선택'))+'</form>'+
+ '<button type="submit" style="display:none" aria-hidden="true"></button>'+
+ '</form>'+
  (meetingStep===4?'<div class="council-ability">'+abilityPanel()+'</div>':'')+shortcuts+controls+'</section>';
 }
 function comparison(r){
@@ -4253,15 +4256,18 @@ document.addEventListener('click',e=>{
   if(speakingAutoPlay)startSpeakingTimer();
   return;
  }
- if(action==='proceed-to-vote'){
-  meetingStep=5;
+ if(action==='proceed-to-vote'||action==='final-vote'){
   stopSpeakingTimer();
-  commit({...game,context:{...game.context,uiStep:5,draft:{...game.context?.draft,proposal,focus,forecast}}});
-  const submitBtn=document.querySelector('#decision button[type="submit"]');
-  if(submitBtn){
-   submitBtn.scrollIntoView({behavior:'smooth',block:'center'});
-   submitBtn.focus();
+  if(!game.context?.goal){
+   selectedGoalKey='inflation';
+   const updated=chooseGoal(game,'inflation');
+   game={...updated,context:{...updated.context,uiStep:meetingStep,draft:{...updated.context?.draft,proposal,focus,forecast}}};
   }
+  const next=decide(game,proposal,focus,forecast);
+  selectedMember=null;argumentMethod=null;
+  alternative=moves.find(d=>d!==next.pending.change);
+  commit(next);
+  if(next.phase!=='review')showBallot(next.pending);
   return;
  }
  if(action.startsWith('gov-propose-')){
